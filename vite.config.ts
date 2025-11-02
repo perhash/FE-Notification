@@ -43,7 +43,6 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        importScripts: ['./firebase-messaging-sw.js'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\./,
@@ -76,7 +75,9 @@ export default defineConfig(({ mode }) => ({
       },
       devOptions: {
         enabled: true,
-        type: 'module'
+        type: 'module',
+        navigateFallback: 'index.html',
+        suppressWarnings: true
       }
     })
   ].filter(Boolean),

@@ -1,10 +1,11 @@
 /* eslint-disable no-undef */
 // Firebase Messaging Service Worker
 
+// Import Firebase scripts
 importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js');
 
-// Initialize Firebase in the service worker
+// Initialize Firebase
 firebase.initializeApp({
   apiKey: 'AIzaSyAEL8iAC3_crFR6UXeHh_xQ0BxjJ4YYkgA',
   authDomain: 'smart-supply-notification.firebaseapp.com',
@@ -43,10 +44,8 @@ self.addEventListener('notificationclick', (event) => {
   const data = event.notification.data || {};
   const clickAction = data.clickAction || '/';
 
-  // Handle click action
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Try to find an existing window and focus it
       for (let i = 0; i < clientList.length; i++) {
         const client = clientList[i];
         if (client.url.includes(clickAction) && 'focus' in client) {
@@ -54,7 +53,6 @@ self.addEventListener('notificationclick', (event) => {
         }
       }
 
-      // If no matching window found, open a new one
       if (clients.openWindow) {
         return clients.openWindow(clickAction);
       }
@@ -79,3 +77,4 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+console.log('[firebase-messaging-sw.js] Firebase messaging SW loaded successfully');

@@ -30,25 +30,38 @@ const initMessaging = async () => {
   return messaging;
 };
 
-// Initialize messaging on module load
-if (typeof window !== 'undefined') {
-  initMessaging();
-}
-
-// Wait for service worker to be ready
-const waitForServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
+// Get Firebase Messaging SW registration
+const getFirebaseMessagingSW = async (): Promise<ServiceWorkerRegistration | null> => {
   if (!('serviceWorker' in navigator)) {
     console.warn('Service workers are not supported');
     return null;
   }
 
   try {
-    // Wait for service worker to be ready
-    const registration = await navigator.serviceWorker.ready;
-    console.log('✅ Service worker is ready:', registration);
-    return registration;
+    // Get all registrations
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    console.log('📋 Available SW registrations:', registrations.length);
+    
+    // Find Firebase messaging SW by checking active worker
+    for (const reg of registrations) {
+      if (reg.active && (reg.active as any).scriptURL) {
+        const registrationUrl = (reg.active as any).scriptURL;
+        if (registrationUrl.includes('firebase-messaging-sw.js')) {
+          console.log('✅ Found Firebase messaging SW:', reg.scope);
+          return reg;
+        }
+      }
+    }
+    
+    // If not found, get the first available one
+    if (registrations.length > 0) {
+      console.log('✅ Using first available SW:', registrations[0].scope);
+      return registrations[0];
+    }
+    
+    return null;
   } catch (error) {
-    console.error('Error waiting for service worker:', error);
+    console.error('Error getting service worker:', error);
     return null;
   }
 };
@@ -56,9 +69,15 @@ const waitForServiceWorker = async (): Promise<ServiceWorkerRegistration | null>
 // Get FCM token
 export const getFCMToken = async (): Promise<string | null> => {
   try {
-    // First, wait for service worker to be ready
-    await waitForServiceWorker();
+    // Get the Firebase messaging service worker
+    const registration = await getFirebaseMessagingSW();
+    
+    if (!registration) {
+      console.error('No service worker registration available');
+      return null;
+    }
 
+    // Initialize messaging
     if (!messaging) {
       messaging = await initMessaging();
     }
@@ -74,7 +93,7 @@ export const getFCMToken = async (): Promise<string | null> => {
       return null;
     }
 
-    const token = await getToken(messaging, { vapidKey });
+    const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
     return token || null;
   } catch (error) {
     console.error('Error getting FCM token:', error);
