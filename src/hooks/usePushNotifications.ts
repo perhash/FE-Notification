@@ -99,8 +99,12 @@ export const usePushNotifications = () => {
         return false;
       }
 
+      console.log('🎟️ FCM Token obtained:', token.substring(0, 20) + '...');
+
       // Get device info
       const { deviceType, platform } = detectDeviceInfo();
+
+      console.log('📤 Sending subscription to backend:', { deviceType, platform });
 
       // Send to backend
       const response = await fetch(`${API_BASE_URL}/push/subscribe`, {
