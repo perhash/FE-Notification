@@ -167,6 +167,17 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
+  // Update PWA badge with unread count
+  useEffect(() => {
+    if ('setAppBadge' in navigator) {
+      if (unreadCount > 0) {
+        navigator.setAppBadge(unreadCount);
+      } else {
+        navigator.clearAppBadge();
+      }
+    }
+  }, [unreadCount]);
+
   return (
     <NotificationContext.Provider
       value={{

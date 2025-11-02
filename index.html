@@ -36,5 +36,22 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Register Firebase Service Worker for Push Notifications -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          // Register Firebase messaging service worker
+          navigator.serviceWorker
+            .register('/firebase-messaging-sw.js')
+            .then((registration) => {
+              console.log('✅ Firebase Service Worker registered:', registration);
+            })
+            .catch((error) => {
+              console.error('❌ Firebase Service Worker registration failed:', error);
+            });
+        });
+      }
+    </script>
   </body>
 </html>

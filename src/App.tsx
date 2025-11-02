@@ -12,6 +12,7 @@ import RootRedirect from "./components/RootRedirect";
 import AdminLayout from "./components/layouts/AdminLayout";
 import RiderLayout from "./components/layouts/RiderLayout";
 import PWAUpdatePrompt from "./components/PWAUpdatePrompt";
+import { usePushNotifications } from "./hooks/usePushNotifications";
 import Index from "./pages/Index";
 import AdminDashboard from "./pages/admin/Dashboard";
 import Customers from "./pages/admin/Customers";
@@ -36,6 +37,20 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
+  const { isAuthenticated, user } = useAuth();
+  const { isSupported, isSubscribed, subscribe } = usePushNotifications();
+
+  // Auto-subscribe to push notifications after login
+  useEffect(() => {
+    if (isAuthenticated && user && isSupported && !isSubscribed) {
+      // Wait 2 seconds after login before prompting
+      const timer = setTimeout(() => {
+        subscribe();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, user, isSupported, isSubscribed, subscribe]);
+
   return (
     <BrowserRouter>
       <Routes>
