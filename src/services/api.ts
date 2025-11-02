@@ -3,11 +3,13 @@ import { API_BASE_URL, API_ENDPOINTS } from '../config/api';
 class ApiService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
+    const token = this.getAuthToken();
     
     const config: RequestInit = {
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
         ...options.headers,
       },
     };
@@ -316,6 +318,88 @@ class ApiService {
   async saveDailyClosing() {
     return this.request('/daily-closings', {
       method: 'POST',
+    });
+  }
+
+  // Admin Profile API
+  async getAdminProfile() {
+    return this.request(API_ENDPOINTS.ADMIN_PROFILE);
+  }
+
+  async updateAdminProfile(profileData: { name?: string; phone?: string }) {
+    return this.request(API_ENDPOINTS.ADMIN_PROFILE, {
+      method: 'PATCH',
+      body: JSON.stringify(profileData),
+    });
+  }
+
+  async updateAdminPassword(passwordData: { currentPassword: string; newPassword: string }) {
+    return this.request(API_ENDPOINTS.ADMIN_PROFILE_PASSWORD, {
+      method: 'PATCH',
+      body: JSON.stringify(passwordData),
+    });
+  }
+
+  // Company Setup API
+  async getCompanySetup() {
+    return this.request(API_ENDPOINTS.COMPANY_SETUP);
+  }
+
+  async createCompanySetup(setupData: {
+    agencyName: string;
+    agencyAddress: string;
+    agencyPhoneNumber: string;
+    agencyLogo?: string;
+    areasOperated: string[];
+  }) {
+    return this.request(API_ENDPOINTS.COMPANY_SETUP, {
+      method: 'POST',
+      body: JSON.stringify(setupData),
+    });
+  }
+
+  async updateCompanySetup(id: string, setupData: {
+    agencyName?: string;
+    agencyAddress?: string;
+    agencyPhoneNumber?: string;
+    agencyLogo?: string;
+    areasOperated?: string[];
+  }) {
+    return this.request(API_ENDPOINTS.COMPANY_SETUP_BY_ID(id), {
+      method: 'PUT',
+      body: JSON.stringify(setupData),
+    });
+  }
+
+  // Bottle Categories API
+  async getBottleCategories(companySetupId: string) {
+    return this.request(`${API_ENDPOINTS.BOTTLE_CATEGORIES}?companySetupId=${companySetupId}`);
+  }
+
+  async createBottleCategory(categoryData: {
+    categoryName: string;
+    price: number;
+    companySetupId: string;
+  }) {
+    return this.request(API_ENDPOINTS.BOTTLE_CATEGORIES, {
+      method: 'POST',
+      body: JSON.stringify(categoryData),
+    });
+  }
+
+  async updateBottleCategory(id: string, categoryData: {
+    categoryName?: string;
+    price?: number;
+  }) {
+    return this.request(API_ENDPOINTS.BOTTLE_CATEGORY_BY_ID(id), {
+      method: 'PUT',
+      body: JSON.stringify(categoryData),
+    });
+  }
+
+  async deleteBottleCategory(id: string) {
+    return this.request(API_ENDPOINTS.BOTTLE_CATEGORY_BY_ID(id), {
+      method: 'DELETE',
     });
   }
 }

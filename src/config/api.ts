@@ -72,7 +72,19 @@ export const API_ENDPOINTS = {
   
   // System
   TEST: '/test',
-  HEALTH: '/health'
+  HEALTH: '/health',
+  
+  // Admin
+  ADMIN_PROFILE: '/admin/profile',
+  ADMIN_PROFILE_PASSWORD: '/admin/profile/password',
+  
+  // Company Setup
+  COMPANY_SETUP: '/company-setup',
+  COMPANY_SETUP_BY_ID: (id: string) => `/company-setup/${id}`,
+  
+  // Bottle Categories
+  BOTTLE_CATEGORIES: '/bottle-categories',
+  BOTTLE_CATEGORY_BY_ID: (id: string) => `/bottle-categories/${id}`
 };
 
 // Log current configuration (for debugging)
