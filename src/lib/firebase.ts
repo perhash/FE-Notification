@@ -35,9 +35,30 @@ if (typeof window !== 'undefined') {
   initMessaging();
 }
 
+// Wait for service worker to be ready
+const waitForServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
+  if (!('serviceWorker' in navigator)) {
+    console.warn('Service workers are not supported');
+    return null;
+  }
+
+  try {
+    // Wait for service worker to be ready
+    const registration = await navigator.serviceWorker.ready;
+    console.log('✅ Service worker is ready:', registration);
+    return registration;
+  } catch (error) {
+    console.error('Error waiting for service worker:', error);
+    return null;
+  }
+};
+
 // Get FCM token
 export const getFCMToken = async (): Promise<string | null> => {
   try {
+    // First, wait for service worker to be ready
+    await waitForServiceWorker();
+
     if (!messaging) {
       messaging = await initMessaging();
     }

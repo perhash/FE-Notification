@@ -43,6 +43,7 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        importScripts: ['./firebase-messaging-sw.js'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\./,
