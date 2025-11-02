@@ -43,6 +43,11 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        importScripts: [
+          'https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js',
+          'https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js',
+          '/firebase-messaging-sw.js'
+        ],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\./,
@@ -75,7 +80,6 @@ export default defineConfig(({ mode }) => ({
       },
       devOptions: {
         enabled: true,
-        type: 'module',
         navigateFallback: 'index.html',
         suppressWarnings: true
       }
