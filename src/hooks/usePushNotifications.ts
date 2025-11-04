@@ -24,17 +24,15 @@ export const usePushNotifications = () => {
   }, []);
 
   // Listen for foreground messages
+  // NOTE: We do NOT show a toast here to prevent dual notifications.
+  // The service worker will handle showing notifications even in foreground.
+  // This handler is kept for potential future use (e.g., updating badge count).
   useEffect(() => {
     if (!user || !isSupported) return;
 
     const unsubscribe = onForegroundMessage((payload) => {
-      console.log('📬 Foreground message received:', payload);
-      
-      // Show in-app toast notification
-      toast.info(payload.notification?.title || 'New notification', {
-        description: payload.notification?.body,
-        duration: 5000
-      });
+      console.log('📬 Foreground message received (not showing toast to prevent duplicates):', payload);
+      // Do not show toast - let service worker handle notifications to prevent duplicates
     });
 
     return () => {

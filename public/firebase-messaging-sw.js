@@ -45,34 +45,55 @@ try {
       console.log('[firebase-messaging-sw.js] Notification title:', payload.notification?.title);
       console.log('[firebase-messaging-sw.js] Notification body:', payload.notification?.body);
       
-      const notificationTitle = payload.notification?.title || 'Smart Supply';
-      const notificationTag = payload.data?.orderId || 'default';
+            const notificationTitle = payload.notification?.title || 'Smart Supply';
+      // Use orderId + type to create tag for deduplication (same tag = replaces previous notification)
+      // This prevents showing the same notification twice for the same order event
+      const notificationTag = payload.data?.orderId 
+        ? `${payload.data.orderId}-${payload.data.type || 'notification'}`
+        : `notification-${Date.now()}`;
+      
+      // Create a unique notification ID for better tracking
+      const notificationId = `${payload.data?.orderId || 'default'}-${Date.now()}`;
       
       const notificationOptions = {
         body: payload.notification?.body || '',
         icon: '/pwa-192x192.png',
         badge: '/pwa-192x192.png',
-        data: payload.data || {},
-        tag: notificationTag,
+        data: {
+          ...(payload.data || {}),
+          notificationId: notificationId
+        },
+        tag: notificationTag, // Tag prevents duplicate notifications - same tag replaces previous notification
         requireInteraction: false,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        silent: false,
+        renotify: false // Don't renotify for same tag
       };
 
       console.log('[firebase-messaging-sw.js] Notification tag:', notificationTag);
+      console.log('[firebase-messaging-sw.js] Notification ID:', notificationId);
       console.log('[firebase-messaging-sw.js] Notification options:', JSON.stringify(notificationOptions, null, 2));
-      
+
       notificationDisplayCount++;
       console.log(`[firebase-messaging-sw.js] About to show notification #${notificationDisplayCount}`);
-      console.log('[firebase-messaging-sw.js] self.registration:', self.registration);
-      
-      self.registration.showNotification(notificationTitle, notificationOptions)
-        .then(() => {
-          console.log(`[firebase-messaging-sw.js] ✅ Notification displayed successfully #${notificationDisplayCount}`);
-          console.log('[firebase-messaging-sw.js] Notification tag used:', notificationTag);
-        })
-        .catch((error) => {
-          console.error('[firebase-messaging-sw.js] ❌ Error showing notification:', error);
+
+      // Check if a notification with this tag already exists and close it first
+      self.registration.getNotifications({ tag: notificationTag }).then((notifications) => {
+        notifications.forEach((notification) => {
+          notification.close();
         });
+        
+        // Show new notification
+        return self.registration.showNotification(notificationTitle, notificationOptions);
+      })
+      .then(() => {
+        console.log(`[firebase-messaging-sw.js] ✅ Notification displayed successfully #${notificationDisplayCount}`);
+        console.log('[firebase-messaging-sw.js] Notification tag used:', notificationTag);
+        console.log('[firebase-messaging-sw.js] Notification ID:', notificationId);
+      })
+      .catch((error) => {
+        console.error('[firebase-messaging-sw.js] ❌ Error showing notification:', error);
+      });
       
       console.log(`[firebase-messaging-sw.js] ========== Handler Call #${handlerCallCount} Complete ==========`);
     });
