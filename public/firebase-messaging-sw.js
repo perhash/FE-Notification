@@ -15,16 +15,23 @@ try {
 
   const messaging = firebase.messaging();
 
-  // Handle background messages
+  // Handle background messages (data-only payload)
   messaging.onBackgroundMessage((payload) => {
     console.log('[firebase-messaging-sw.js] Received background message:', payload);
     
-    const notificationTitle = payload.notification?.title || 'Smart Supply';
+    // Extract title and body from data field (since we removed notification field)
+    const notificationTitle = payload.data?.title || 'Smart Supply';
+    const notificationBody = payload.data?.body || '';
+    
     const notificationOptions = {
-      body: payload.notification?.body || '',
+      body: notificationBody,
       icon: '/pwa-192x192.png',
       badge: '/pwa-192x192.png',
-      data: payload.data || {},
+      data: {
+        orderId: payload.data?.orderId || '',
+        type: payload.data?.type || 'SYSTEM_UPDATE',
+        clickAction: payload.data?.clickAction || '/'
+      },
       tag: payload.data?.orderId || 'default',
       requireInteraction: false,
       timestamp: Date.now()

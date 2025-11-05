@@ -30,9 +30,13 @@ export const usePushNotifications = () => {
     const unsubscribe = onForegroundMessage((payload) => {
       console.log('📬 Foreground message received:', payload);
       
+      // Extract title and body from data field (since we removed notification field)
+      const title = payload.data?.title || 'New notification';
+      const body = payload.data?.body || '';
+      
       // Show in-app toast notification
-      toast.info(payload.notification?.title || 'New notification', {
-        description: payload.notification?.body,
+      toast.info(title, {
+        description: body,
         duration: 5000
       });
     });
