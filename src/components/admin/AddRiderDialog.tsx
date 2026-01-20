@@ -36,6 +36,7 @@ export function AddRiderDialog({ trigger, onSuccess }: AddRiderDialogProps) {
     password: "",
     confirmPassword: "",
     status: "active",
+    canCreateOrders: false,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,6 +97,7 @@ export function AddRiderDialog({ trigger, onSuccess }: AddRiderDialogProps) {
         phone: formData.phone.trim(),
         email: formData.email.trim(),
         password: formData.password,
+        canCreateOrders: formData.canCreateOrders,
       };
 
       const response = await apiService.createRider(riderData);
@@ -111,6 +113,7 @@ export function AddRiderDialog({ trigger, onSuccess }: AddRiderDialogProps) {
           password: "",
           confirmPassword: "",
           status: "active",
+          canCreateOrders: false,
         });
         setOpen(false);
         
@@ -233,6 +236,35 @@ export function AddRiderDialog({ trigger, onSuccess }: AddRiderDialogProps) {
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="canCreateOrders">
+              Rider Order Access
+            </Label>
+            <div className="flex items-center justify-between rounded-md border px-3 py-2">
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">
+                  Allow rider to create enroute orders
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  If enabled, this rider can create fully-paid enroute orders from the rider app.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant={formData.canCreateOrders ? "default" : "outline"}
+                size="sm"
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    canCreateOrders: !prev.canCreateOrders,
+                  }))
+                }
+              >
+                {formData.canCreateOrders ? "Enabled" : "Disabled"}
+              </Button>
+            </div>
           </div>
 
           <div className="flex gap-3 justify-end pt-4">

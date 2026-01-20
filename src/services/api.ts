@@ -177,6 +177,13 @@ class ApiService {
     });
   }
 
+  async createEnrouteOrder(payload: { customerId: string; numberOfBottles: number; unitPrice: number; notes?: string; paymentAmount: number; paymentMethod?: string; priority?: string }) {
+    return this.request(API_ENDPOINTS.ENROUTE_ORDER, {
+      method: 'POST',
+      body: JSON.stringify(payload || {}),
+    });
+  }
+
   async cancelOrder(id: string) {
     return this.request(`${API_ENDPOINTS.ORDER_BY_ID(id)}/cancel`, {
       method: 'POST',

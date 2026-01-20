@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, MapPin, Phone, CheckCircle, Clock, DollarSign, Receipt } from "lucide-react";
+import { Package, MapPin, Phone, CheckCircle, Clock, DollarSign, Receipt, PlusCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiService } from "@/services/api";
@@ -53,6 +53,7 @@ const RiderDashboard = () => {
   const [assignedDeliveries, setAssignedDeliveries] = useState<Order[]>([]);
   const [completedDeliveries, setCompletedDeliveries] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [canCreateOrders, setCanCreateOrders] = useState(false);
   const channelRef = useRef<any>(null);
 
   const { user } = useAuth();
@@ -70,13 +71,13 @@ const RiderDashboard = () => {
 
     // Total current order amount of today's orders
     const totalCurrentOrderAmount = allTodayOrders.reduce((sum, delivery) => sum + (delivery.currentOrderAmount || 0), 0);
-    
+
     // Total received amount of today's orders
     const totalReceivedAmount = allTodayOrders.reduce((sum, delivery) => sum + (delivery.paidAmount || 0), 0);
-    
+
     // Calculate difference: Total Current Order - Total Received
     const difference = totalCurrentOrderAmount - totalReceivedAmount;
-    
+
     // Dynamic third metric: Recovery or Udhaar
     const isRecovery = difference < 0;
     const thirdMetricAmount = Math.abs(difference);
@@ -101,7 +102,7 @@ const RiderDashboard = () => {
       const response = await apiService.getRiderDashboard(riderId) as any;
       if (response?.success) {
         const todayPktDate = getTodayPktDate();
-        
+
         // Filter assigned deliveries for today only
         const assigned = (response.data?.assignedDeliveries || []) as any[];
         const assignedToday = assigned.filter((delivery: Order) => {
@@ -109,7 +110,7 @@ const RiderDashboard = () => {
           const deliveryDate = formatPktDate(delivery.createdAt);
           return deliveryDate === todayPktDate;
         });
-        
+
         const rank = (p?: string) => (p === 'high' ? 0 : p === 'normal' ? 1 : p === 'medium' ? 1 : 2);
         assignedToday.sort((a, b) => {
           const ar = rank(a.priority);
@@ -117,7 +118,7 @@ const RiderDashboard = () => {
           if (ar !== br) return ar - br;
           return (a.id || '').localeCompare(b.id || '');
         });
-        
+
         // Filter completed deliveries for today only
         const completed = (response.data?.completedDeliveries || []) as any[];
         const completedToday = completed.filter((delivery: Order) => {
@@ -125,9 +126,17 @@ const RiderDashboard = () => {
           const deliveryDate = formatPktDate(delivery.createdAt);
           return deliveryDate === todayPktDate;
         });
-        
+
         setAssignedDeliveries(assignedToday);
         setCompletedDeliveries(completedToday);
+      }
+
+      // Also refresh user from localStorage to get latest rider flags
+      const currentUser = apiService.getCurrentUser();
+      if (currentUser?.riderProfile) {
+        setCanCreateOrders(!!currentUser.riderProfile.canCreateOrders);
+      } else if (currentUser?.profile) {
+        setCanCreateOrders(!!currentUser.profile.canCreateOrders);
       }
     } catch (error) {
       console.error('Error fetching rider data:', error);
@@ -141,6 +150,14 @@ const RiderDashboard = () => {
   useEffect(() => {
     if (!riderId) return;
     fetchRiderData();
+
+    // On first load / refresh, ensure we read canCreateOrders from stored user as well
+    const currentUser = apiService.getCurrentUser();
+    if (currentUser?.riderProfile) {
+      setCanCreateOrders(!!currentUser.riderProfile.canCreateOrders);
+    } else if (currentUser?.profile) {
+      setCanCreateOrders(!!currentUser.profile.canCreateOrders);
+    }
 
     const channelName = `rider-orders-${riderId}`;
     const channel = supabase
@@ -201,13 +218,21 @@ const RiderDashboard = () => {
             </div>
           </div>
 
-          {/* Order History Link - Mobile */}
-          <div className="mt-6">
+          {/* Actions - Mobile (Order history + optional create enroute) */}
+          <div className="mt-6 flex items-center justify-between">
             <Link to="/rider/history">
-              <p className="text-white underline text-sm font-medium text-right">
+              <p className="text-white underline text-sm font-medium">
                 Order history
               </p>
             </Link>
+            {canCreateOrders && (
+              <Link to="/rider/enroute">
+                <Button size="sm" variant="outline" className="bg-white/10 border-white text-white hover:bg-white/20">
+                  <PlusCircle className="h-4 w-4 mr-1" />
+                  Enroute order
+                </Button>
+              </Link>
+            )}
           </div>
 
         </div>
@@ -252,18 +277,15 @@ const RiderDashboard = () => {
                   <p className="text-xl font-bold text-green-900 mt-auto">RS. {totalReceivedAmount}</p>
                 </div>
               </div>
-              <div className={`bg-gradient-to-br rounded-2xl p-4 border h-full ${
-                isRecovery 
-                  ? 'from-purple-50 to-purple-100 border-purple-200' 
+              <div className={`bg-gradient-to-br rounded-2xl p-4 border h-full ${isRecovery
+                  ? 'from-purple-50 to-purple-100 border-purple-200'
                   : 'from-red-50 to-red-100 border-red-200'
-              }`}>
+                }`}>
                 <div className="flex flex-col h-full">
-                  <p className={`text-xs mb-2 ${
-                    isRecovery ? 'text-purple-700' : 'text-red-700'
-                  }`}>{thirdMetricLabel}</p>
-                  <p className={`text-xl font-bold mt-auto ${
-                    isRecovery ? 'text-purple-900' : 'text-red-900'
-                  }`}>RS. {thirdMetricAmount}</p>
+                  <p className={`text-xs mb-2 ${isRecovery ? 'text-purple-700' : 'text-red-700'
+                    }`}>{thirdMetricLabel}</p>
+                  <p className={`text-xl font-bold mt-auto ${isRecovery ? 'text-purple-900' : 'text-red-900'
+                    }`}>RS. {thirdMetricAmount}</p>
                 </div>
               </div>
             </div>
@@ -437,132 +459,101 @@ const RiderDashboard = () => {
 
         {/* Bottom Section - White Background */}
         <div className="bg-white rounded-3xl shadow-2xl p-8 border border-cyan-100">
-          <div className="flex rounded-full border-2 border-cyan-100 bg-cyan-50 p-1 mb-8 w-fit mx-auto">
-            <button
-              onClick={() => setActiveTab("assigned")}
-              className={`px-8 py-3 rounded-full font-medium transition-all ${activeTab === "assigned"
-                ? "bg-white text-cyan-700 shadow-md"
-                : "text-cyan-600"
-                }`}
-            >
-              Assigned ({assignedDeliveries.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("completed")}
-              className={`px-8 py-3 rounded-full font-medium transition-all ${activeTab === "completed"
-                ? "bg-white text-green-700 shadow-md"
-                : "text-cyan-600"
-                }`}
-            >
-              Completed ({completedDeliveries.length})
-            </button>
-          </div>
+          <div className="flex flex-col gap-4 mb-8">
+            <div className="flex rounded-full border-2 border-cyan-100 bg-cyan-50 p-1 w-fit mx-auto">
+              <button
+                onClick={() => setActiveTab("assigned")}
+                className={`px-8 py-3 rounded-full font-medium transition-all ${activeTab === "assigned"
+                  ? "bg-white text-cyan-700 shadow-md"
+                  : "text-cyan-600"
+                  }`}
+              >
+                Assigned ({assignedDeliveries.length})
+              </button>
+              <button
+                onClick={() => setActiveTab("completed")}
+                className={`px-8 py-3 rounded-full font-medium transition-all ${activeTab === "completed"
+                  ? "bg-white text-green-700 shadow-md"
+                  : "text-cyan-600"
+                  }`}
+              >
+                Completed ({completedDeliveries.length})
+              </button>
+            </div>
 
-          {/* Today's Delivery Metrics */}
-          <div className="grid grid-cols-3 gap-4 mb-8">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-3xl p-6 border border-blue-200 h-full">
-              <div className="flex items-center gap-4 h-full">
-                <div className="w-14 h-14 bg-blue-200 rounded-2xl flex items-center justify-center flex-shrink-0">
-                  <DollarSign className="h-8 w-8 text-blue-700" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-blue-700 font-medium mb-1">Total Current Order</p>
-                  <p className="text-3xl font-bold text-blue-900">RS. {totalCurrentOrderAmount}</p>
-                </div>
-              </div>
-            </div>
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-3xl p-6 border border-green-200 h-full">
-              <div className="flex items-center gap-4 h-full">
-                <div className="w-14 h-14 bg-green-200 rounded-2xl flex items-center justify-center flex-shrink-0">
-                  <Receipt className="h-8 w-8 text-green-700" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-green-700 font-medium mb-1">Total Received</p>
-                  <p className="text-3xl font-bold text-green-900">RS. {totalReceivedAmount}</p>
+            {/* Today's Delivery Metrics */}
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-3xl p-6 border border-blue-200 h-full">
+                <div className="flex items-center gap-4 h-full">
+                  <div className="w-14 h-14 bg-blue-200 rounded-2xl flex items-center justify-center flex-shrink-0">
+                    <DollarSign className="h-8 w-8 text-blue-700" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-blue-700 font-medium mb-1">Total Current Order</p>
+                    <p className="text-3xl font-bold text-blue-900">RS. {totalCurrentOrderAmount}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className={`bg-gradient-to-br rounded-3xl p-6 border h-full ${
-              isRecovery 
-                ? 'from-purple-50 to-purple-100 border-purple-200' 
-                : 'from-red-50 to-red-100 border-red-200'
-            }`}>
-              <div className="flex items-center gap-4 h-full">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${
-                  isRecovery ? 'bg-purple-200' : 'bg-red-200'
+              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-3xl p-6 border border-green-200 h-full">
+                <div className="flex items-center gap-4 h-full">
+                  <div className="w-14 h-14 bg-green-200 rounded-2xl flex items-center justify-center flex-shrink-0">
+                    <Receipt className="h-8 w-8 text-green-700" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-green-700 font-medium mb-1">Total Received</p>
+                    <p className="text-3xl font-bold text-green-900">RS. {totalReceivedAmount}</p>
+                  </div>
+                </div>
+              </div>
+              <div className={`bg-gradient-to-br rounded-3xl p-6 border h-full ${isRecovery
+                  ? 'from-purple-50 to-purple-100 border-purple-200'
+                  : 'from-red-50 to-red-100 border-red-200'
                 }`}>
-                  <Package className={`h-8 w-8 ${
-                    isRecovery ? 'text-purple-700' : 'text-red-700'
-                  }`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-medium mb-1 ${
-                    isRecovery ? 'text-purple-700' : 'text-red-700'
-                  }`}>{thirdMetricLabel}</p>
-                  <p className={`text-3xl font-bold ${
-                    isRecovery ? 'text-purple-900' : 'text-red-900'
-                  }`}>RS. {thirdMetricAmount}</p>
+                <div className="flex items-center gap-4 h-full">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${isRecovery ? 'bg-purple-200' : 'bg-red-200'
+                    }`}>
+                    <Package className={`h-8 w-8 ${isRecovery ? 'text-purple-700' : 'text-red-700'
+                      }`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium mb-1 ${isRecovery ? 'text-purple-700' : 'text-red-700'
+                      }`}>{thirdMetricLabel}</p>
+                    <p className={`text-3xl font-bold ${isRecovery ? 'text-purple-900' : 'text-red-900'
+                      }`}>RS. {thirdMetricAmount}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Delivery List */}
-          {activeTab === "assigned" && (
-            <div className="grid gap-4 grid-cols-2">
-              {assignedDeliveries.length === 0 ? (
-                <div className="col-span-2 text-center py-16">
-                  <Package className="h-20 w-20 mx-auto text-gray-300 mb-4" />
-                  <p className="text-lg text-gray-500">No assigned deliveries</p>
-                </div>
-              ) : (
-                assignedDeliveries.map((delivery) => (
-                  <Link key={delivery.originalId} to={`/rider/orders/${delivery.originalId}`}>
-                    <div className="bg-gradient-to-br from-white to-cyan-50/30 rounded-2xl p-6 border border-cyan-100 hover:shadow-lg transition-all">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <p className="font-bold text-gray-900">{delivery.customer}</p>
-                            <Badge className="bg-cyan-100 text-cyan-700">Assigned</Badge>
-                          </div>
-                          <p className="text-sm text-gray-500">{delivery.phone}</p>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <MapPin className="h-4 w-4 flex-shrink-0" />
-                          <span className="line-clamp-2">{delivery.address || 'Address not available'}</span>
-                        </div>
-                        <div className="flex items-center justify-between pt-2">
-                          <p className="text-sm text-gray-500">{delivery.bottles} bottles</p>
-                          <p className="font-bold text-xl text-cyan-700">RS. {delivery.amount}</p>
-                        </div>
-                      </div>
-                    </div>
+              {canCreateOrders && (
+                <div className="flex justify-end">
+                  <Link to="/rider/enroute">
+                    <Button size="sm" className="gap-2">
+                      <PlusCircle className="h-4 w-4" />
+                      New enroute order
+                    </Button>
                   </Link>
-                ))
+                </div>
               )}
             </div>
-          )}
 
-          {activeTab === "completed" && (
-            <div className="space-y-6">
+            {/* Delivery List */}
+            {activeTab === "assigned" && (
               <div className="grid gap-4 grid-cols-2">
-                {completedDeliveries.length === 0 ? (
+                {assignedDeliveries.length === 0 ? (
                   <div className="col-span-2 text-center py-16">
-                    <CheckCircle className="h-20 w-20 mx-auto text-gray-300 mb-4" />
-                    <p className="text-lg text-gray-500">No completed deliveries</p>
+                    <Package className="h-20 w-20 mx-auto text-gray-300 mb-4" />
+                    <p className="text-lg text-gray-500">No assigned deliveries</p>
                   </div>
                 ) : (
-                  completedDeliveries.map((delivery) => (
+                  assignedDeliveries.map((delivery) => (
                     <Link key={delivery.originalId} to={`/rider/orders/${delivery.originalId}`}>
-                      <div className="bg-gradient-to-br from-white to-green-50/30 rounded-2xl p-6 border border-green-100 hover:shadow-lg transition-shadow">
+                      <div className="bg-gradient-to-br from-white to-cyan-50/30 rounded-2xl p-6 border border-cyan-100 hover:shadow-lg transition-all">
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
                               <p className="font-bold text-gray-900">{delivery.customer}</p>
-                              <Badge className="bg-green-600 text-white">Completed</Badge>
+                              <Badge className="bg-cyan-100 text-cyan-700">Assigned</Badge>
                             </div>
+                            <p className="text-sm text-gray-500">{delivery.phone}</p>
                           </div>
                         </div>
                         <div className="space-y-2">
@@ -571,19 +562,8 @@ const RiderDashboard = () => {
                             <span className="line-clamp-2">{delivery.address || 'Address not available'}</span>
                           </div>
                           <div className="flex items-center justify-between pt-2">
-                            <div>
-                              <p className="text-xs text-gray-500 mb-1">Total</p>
-                              <p className="font-bold text-xl text-green-700">RS. {delivery.amount}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-xs text-gray-500 mb-1">Paid</p>
-                              <p className="font-bold text-lg text-green-600">RS. {delivery.paidAmount || 0}</p>
-                            </div>
-                          </div>
-                          <div className="pt-2 border-t">
-                            <Badge className={getPaymentStatusBadge(delivery.paymentStatus).className}>
-                              {getPaymentStatusBadge(delivery.paymentStatus).text}
-                            </Badge>
+                            <p className="text-sm text-gray-500">{delivery.bottles} bottles</p>
+                            <p className="font-bold text-xl text-cyan-700">RS. {delivery.amount}</p>
                           </div>
                         </div>
                       </div>
@@ -591,10 +571,59 @@ const RiderDashboard = () => {
                   ))
                 )}
               </div>
+            )}
+
+            {activeTab === "completed" && (
+              <div className="space-y-6">
+                <div className="grid gap-4 grid-cols-2">
+                  {completedDeliveries.length === 0 ? (
+                    <div className="col-span-2 text-center py-16">
+                      <CheckCircle className="h-20 w-20 mx-auto text-gray-300 mb-4" />
+                      <p className="text-lg text-gray-500">No completed deliveries</p>
+                    </div>
+                  ) : (
+                    completedDeliveries.map((delivery) => (
+                      <Link key={delivery.originalId} to={`/rider/orders/${delivery.originalId}`}>
+                        <div className="bg-gradient-to-br from-white to-green-50/30 rounded-2xl p-6 border border-green-100 hover:shadow-lg transition-shadow">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <p className="font-bold text-gray-900">{delivery.customer}</p>
+                                <Badge className="bg-green-600 text-white">Completed</Badge>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <MapPin className="h-4 w-4 flex-shrink-0" />
+                              <span className="line-clamp-2">{delivery.address || 'Address not available'}</span>
+                            </div>
+                            <div className="flex items-center justify-between pt-2">
+                              <div>
+                                <p className="text-xs text-gray-500 mb-1">Total</p>
+                                <p className="font-bold text-xl text-green-700">RS. {delivery.amount}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs text-gray-500 mb-1">Paid</p>
+                                <p className="font-bold text-lg text-green-600">RS. {delivery.paidAmount || 0}</p>
+                              </div>
+                            </div>
+                            <div className="pt-2 border-t">
+                              <Badge className={getPaymentStatusBadge(delivery.paymentStatus).className}>
+                                {getPaymentStatusBadge(delivery.paymentStatus).text}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    ))
+                  )}
+                </div>
 
 
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

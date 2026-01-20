@@ -31,6 +31,7 @@ import RiderOrderDetail from "./pages/rider/OrderDetail";
 import RiderPayments from "./pages/rider/Payments";
 import RiderProfile from "./pages/rider/Profile";
 import RiderOrderHistory from "./pages/rider/OrderHistory";
+import EnrouteOrderPage from "./pages/rider/EnrouteOrder";
 import AdminProfile from "./pages/admin/Profile";
 import NotFound from "./pages/NotFound";
 
@@ -92,6 +93,7 @@ const AppRoutes = () => {
           <Route path="history" element={<RiderOrderHistory />} />
           <Route path="payments" element={<RiderPayments />} />
           <Route path="profile" element={<RiderProfile />} />
+          <Route path="enroute" element={<EnrouteOrderPage />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />

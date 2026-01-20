@@ -56,6 +56,7 @@ export const API_ENDPOINTS = {
   // Orders
   ORDERS: '/orders',
   ORDER_BY_ID: (id: string) => `/orders/${id}`,
+  ENROUTE_ORDER: '/orders/enroute',
   
   // Riders
   RIDERS: '/riders',
