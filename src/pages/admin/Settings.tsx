@@ -27,10 +27,12 @@ import {
   Plus,
   Trash2,
   Save,
+  RefreshCw,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { apiService } from "@/services/api";
 import { toast } from "sonner";
+import { customerSyncService } from "@/services/customerSync";
 
 interface AdminProfile {
   id: string;
@@ -98,6 +100,9 @@ const Settings = () => {
   // Bottle Categories
   const [categories, setCategories] = useState<BottleCategory[]>([]);
   const [editedCategories, setEditedCategories] = useState<{ [key: string]: { categoryName: string; price: number } }>({});
+
+  // Customer Sync
+  const [syncingCustomers, setSyncingCustomers] = useState(false);
 
   // Load initial data
   useEffect(() => {
@@ -469,6 +474,22 @@ const Settings = () => {
     }
   };
 
+  const handleSyncCustomers = async () => {
+    setSyncingCustomers(true);
+    try {
+      const result = await customerSyncService.syncCustomers();
+      if (result.success) {
+        toast.success("Customers synced successfully");
+      } else {
+        toast.error(result.message || "Failed to sync customers");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to sync customers");
+    } finally {
+      setSyncingCustomers(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen pb-24 md:pb-6">
@@ -663,6 +684,31 @@ const Settings = () => {
                   Add Agency Information
                 </Button>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Customer Sync Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <RefreshCw className="h-5 w-5 text-blue-600" />
+                Customer Sync
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Sync customer data to local storage for faster search. Customers are automatically synced every 6 hours.
+                </p>
+                <Button
+                  onClick={handleSyncCustomers}
+                  disabled={syncingCustomers}
+                  className="w-full"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${syncingCustomers ? 'animate-spin' : ''}`} />
+                  {syncingCustomers ? 'Syncing...' : 'Sync Customers'}
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -900,6 +946,30 @@ const Settings = () => {
                   Add Agency Information
                 </Button>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Customer Sync */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <RefreshCw className="h-5 w-5" />
+                Customer Sync
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Sync customer data to local storage for faster search. Customers are automatically synced every 6 hours.
+                </p>
+                <Button
+                  onClick={handleSyncCustomers}
+                  disabled={syncingCustomers}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${syncingCustomers ? 'animate-spin' : ''}`} />
+                  {syncingCustomers ? 'Syncing...' : 'Sync Customers'}
+                </Button>
+              </div>
             </CardContent>
           </Card>
 

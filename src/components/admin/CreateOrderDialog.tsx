@@ -39,6 +39,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { AddCustomerDialog } from "@/components/admin/AddCustomerDialog";
+import { indexedDBService } from "@/services/indexedDB";
 
 interface CreateOrderDialogProps {
   trigger?: React.ReactNode;
@@ -48,14 +49,16 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [selectedCustomerBalance, setSelectedCustomerBalance] = useState<number | null>(null);
   const [bottles, setBottles] = useState("");
-  const [pricePerBottle, setPricePerBottle] = useState("90");
+  const [pricePerBottle, setPricePerBottle] = useState("");
   const [selectedRider, setSelectedRider] = useState("");
   const [notes, setNotes] = useState("");
   const [priority, setPriority] = useState("medium");
   const [orderType, setOrderType] = useState("delivery");
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [loadingRiders, setLoadingRiders] = useState(false);
+  const [loadingBalance, setLoadingBalance] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [customerResults, setCustomerResults] = useState<any[]>([]);
   const [riders, setRiders] = useState<any[]>([]);
@@ -89,6 +92,62 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
     loadRiders();
   }, [open]);
 
+  // Load bottle price (19 liter) when dialog opens - IndexedDB first, then API fallback
+  useEffect(() => {
+    const loadBottlePrice = async () => {
+      if (!open) return;
+      try {
+        // Try to get price from IndexedDB first
+        try {
+          await indexedDBService.init();
+          const price19L = await indexedDBService.getBottlePrice19Liter();
+          if (price19L) {
+            console.log('Loaded 19 liter price from IndexedDB:', price19L);
+            setPricePerBottle(price19L);
+            return;
+          }
+        } catch (error) {
+          console.error('Failed to load price from IndexedDB:', error);
+        }
+
+        // Fallback to API if not found in IndexedDB
+        console.log('Loading 19 liter price from API...');
+        const companyRes = await apiService.getCompanySetup() as any;
+        if (companyRes.success && companyRes.data?.id) {
+          const categoriesRes = await apiService.getBottleCategories(companyRes.data.id) as any;
+          if (categoriesRes.success && categoriesRes.data) {
+            // Find 19 liter bottle category - exact match first, then partial
+            const category19L = categoriesRes.data.find((cat: any) => {
+              const name = (cat.categoryName || '').toLowerCase().trim();
+              return name === '19 liter' || (name.includes('19') && name.includes('liter'));
+            });
+            if (category19L?.price) {
+              const price = String(category19L.price);
+              console.log('Loaded 19 liter price from API:', price);
+              setPricePerBottle(price);
+              
+              // Store in IndexedDB for next time
+              try {
+                await indexedDBService.storeBottlePrices(categoriesRes.data);
+                console.log('Bottle prices stored in IndexedDB');
+              } catch (error) {
+                console.error('Failed to store bottle prices in IndexedDB:', error);
+              }
+              return;
+            }
+          }
+        }
+        // Set default if no price found
+        console.warn('19 liter price not found, using default: 90');
+        setPricePerBottle("90");
+      } catch (error) {
+        console.error('Failed to load bottle price:', error);
+        setPricePerBottle("90");
+      }
+    };
+    loadBottlePrice();
+  }, [open]);
+
   // Reset loading state when dialog closes
   useEffect(() => {
     if (!open) {
@@ -103,7 +162,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
     }
   }, [orderType, selectedCustomer]);
 
-  // Debounced customer search
+  // Debounced customer search - IndexedDB first, then API fallback
   useEffect(() => {
     const handler = setTimeout(async () => {
       if (!searchQuery) {
@@ -112,13 +171,46 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
       }
       try {
         setLoadingCustomers(true);
-        const res = await apiService.searchCustomers(searchQuery);
-        if ((res as any).success) {
-          setCustomerResults((res as any).data);
-        } else {
-          setCustomerResults([]);
+        
+        // Initialize IndexedDB if needed
+        try {
+          await indexedDBService.init();
+        } catch (error) {
+          console.error('IndexedDB init error:', error);
         }
+
+        // Search IndexedDB first
+        let results: any[] = [];
+        try {
+          const indexedResults = await indexedDBService.searchCustomers(searchQuery);
+          results = indexedResults;
+        } catch (error) {
+          console.error('IndexedDB search error:', error);
+        }
+
+        // If no results in IndexedDB, fallback to API
+        if (results.length === 0) {
+          try {
+            const res = await apiService.searchCustomers(searchQuery);
+            if ((res as any).success) {
+              results = (res as any).data || [];
+              // Store API results in IndexedDB for future searches
+              if (results.length > 0) {
+                try {
+                  await indexedDBService.storeCustomers(results);
+                } catch (error) {
+                  console.error('Failed to store customers in IndexedDB:', error);
+                }
+              }
+            }
+          } catch (e) {
+            console.error('API search error:', e);
+          }
+        }
+
+        setCustomerResults(results);
       } catch (e) {
+        console.error('Customer search error:', e);
         setCustomerResults([]);
       } finally {
         setLoadingCustomers(false);
@@ -129,39 +221,57 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
 
   const filteredCustomers = customerResults;
 
-  // When customer is selected, check for active order and prefill if present
+  // When customer is selected, fetch updated balance and check for active order
   useEffect(() => {
-    const loadActiveOrder = async () => {
+    const loadCustomerData = async () => {
       if (!selectedCustomer || selectedCustomer.id === 'walkin') {
         setActiveOrder(null);
         setIsAmend(false);
+        setSelectedCustomerBalance(0);
         return;
       }
+      
       try {
+        setLoadingBalance(true);
+        
+        // Fetch updated customer data with balance from API
         const res = await apiService.getCustomerById(selectedCustomer.id) as any;
-        if (res?.success && Array.isArray(res.data?.orders)) {
-          const inProgress = res.data.orders.find((o: any) => ['pending','assigned','in_progress','in progress'].includes(String(o.status).toLowerCase()));
-          if (inProgress && inProgress.id) {
-            // Fetch full order to infer rider and precise amounts
-            const full = await apiService.getOrderById(inProgress.id) as any;
-            const orderData = full?.data || null;
-            setActiveOrder(orderData);
-            setIsAmend(true);
+        if (res?.success) {
+          const customerData = res.data;
+          
+          // Set updated balance
+          setSelectedCustomerBalance(customerData.currentBalance || 0);
+          
+          // Check for active order
+          if (Array.isArray(customerData?.orders)) {
+            const inProgress = customerData.orders.find((o: any) => 
+              ['pending','assigned','in_progress','in progress'].includes(String(o.status).toLowerCase())
+            );
+            if (inProgress && inProgress.id) {
+              // Fetch full order to infer rider and precise amounts
+              const full = await apiService.getOrderById(inProgress.id) as any;
+              const orderData = full?.data || null;
+              setActiveOrder(orderData);
+              setIsAmend(true);
 
-            // Prefill bottles and unit price (infer unit price from currentOrderAmount / numberOfBottles)
-            const nb = orderData?.numberOfBottles;
-            const coa = parseFloat(orderData?.currentOrderAmount ?? 0);
-            if (nb && nb > 0 && !isNaN(coa)) {
-              const inferred = Math.round(coa / nb);
-              setBottles(String(nb));
-              setPricePerBottle(String(inferred));
-            }
-            // Prefill rider for delivery orders
-            if (orderData?.orderType === 'DELIVERY' && orderData?.riderId) {
-              setOrderType('delivery');
-              setSelectedRider(orderData.riderId);
-            } else if (orderData?.orderType === 'WALKIN') {
-              setOrderType('walkin');
+              // Prefill bottles and unit price (infer unit price from currentOrderAmount / numberOfBottles)
+              const nb = orderData?.numberOfBottles;
+              const coa = parseFloat(orderData?.currentOrderAmount ?? 0);
+              if (nb && nb > 0 && !isNaN(coa)) {
+                const inferred = Math.round(coa / nb);
+                setBottles(String(nb));
+                setPricePerBottle(String(inferred));
+              }
+              // Prefill rider for delivery orders
+              if (orderData?.orderType === 'DELIVERY' && orderData?.riderId) {
+                setOrderType('delivery');
+                setSelectedRider(orderData.riderId);
+              } else if (orderData?.orderType === 'WALKIN') {
+                setOrderType('walkin');
+              }
+            } else {
+              setActiveOrder(null);
+              setIsAmend(false);
             }
           } else {
             setActiveOrder(null);
@@ -170,13 +280,18 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
         } else {
           setActiveOrder(null);
           setIsAmend(false);
+          setSelectedCustomerBalance(null);
         }
-      } catch {
+      } catch (error) {
+        console.error('Failed to load customer data:', error);
         setActiveOrder(null);
         setIsAmend(false);
+        setSelectedCustomerBalance(null);
+      } finally {
+        setLoadingBalance(false);
       }
     };
-    loadActiveOrder();
+    loadCustomerData();
   }, [selectedCustomer]);
 
   // Check if selected customer is unknown walk-in customer
@@ -184,15 +299,17 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
     (selectedCustomer.name === 'Walk-in Customer' || 
      selectedCustomer.phone === '000-000-0000');
 
-  // Choose which balance to display: in update mode use order snapshot; else use customer balance
+  // Choose which balance to display: in update mode use order snapshot; else use fetched balance
   const displayBalance = useMemo(() => {
     if (isAmend && activeOrder) {
       const b = parseFloat(activeOrder.customerBalance ?? 0);
       return isNaN(b) ? 0 : b;
     }
-    const b = parseFloat(selectedCustomer?.currentBalance ?? 0);
-    return isNaN(b) ? 0 : b;
-  }, [isAmend, activeOrder, selectedCustomer]);
+    if (selectedCustomerBalance !== null) {
+      return selectedCustomerBalance;
+    }
+    return 0;
+  }, [isAmend, activeOrder, selectedCustomerBalance]);
 
   // Auto-calculate payment amount for walk-in orders
   useEffect(() => {
@@ -476,9 +593,6 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                               <p className="text-xs text-muted-foreground">{customer.address}</p>
                             )}
                           </div>
-                          <Badge variant={(customer.currentBalance ?? 0) < 0 ? "destructive" : "default"}>
-                            {(customer.currentBalance ?? 0) < 0 ? `Payable RS. ${Math.abs(customer.currentBalance)}` : (customer.currentBalance ?? 0) > 0 ? `Receivable RS. ${customer.currentBalance}` : 'Clear'}
-                          </Badge>
                         </div>
                       </div>
                     ))}
@@ -507,10 +621,19 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                       <Badge className="bg-amber-100 text-amber-700">Order in progress</Badge>
                     </div>
                   )}
-                  <Badge variant={(displayBalance ?? 0) < 0 ? "destructive" : "default"}>
-                    {(displayBalance ?? 0) < 0 ? "Payable" : (displayBalance ?? 0) > 0 ? "Receivable" : 'Clear'}
-                  </Badge>
-                  <p className="text-sm font-medium mt-1">RS. {Math.abs(displayBalance ?? 0)}</p>
+                  {loadingBalance ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-sm text-muted-foreground">Loading balance...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Badge variant={(displayBalance ?? 0) < 0 ? "destructive" : "default"}>
+                        {(displayBalance ?? 0) < 0 ? "Payable" : (displayBalance ?? 0) > 0 ? "Receivable" : 'Clear'}
+                      </Badge>
+                      <p className="text-sm font-medium mt-1">RS. {Math.abs(displayBalance ?? 0)}</p>
+                    </>
+                  )}
                 </div>
               </div>
               <Button
@@ -518,7 +641,10 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                 variant="ghost"
                 size="sm"
                 className="mt-2"
-                onClick={() => setSelectedCustomer(null)}
+                onClick={() => {
+                  setSelectedCustomer(null);
+                  setSelectedCustomerBalance(null);
+                }}
               >
                 Change Customer
               </Button>

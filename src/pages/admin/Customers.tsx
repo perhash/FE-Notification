@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Phone, Plus, Edit, Eye, MapPin, DollarSign, Users, RefreshCw, Droplet } from "lucide-react";
+import { Search, Phone, Plus, Edit, Eye, MapPin, DollarSign, Users, RefreshCw, Droplet, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { AddCustomerDialog } from "@/components/admin/AddCustomerDialog";
 import { CustomerStatusToggle } from "@/components/admin/CustomerStatusToggle";
@@ -103,6 +103,47 @@ const Customers = () => {
     );
     setEditDialogOpen(false);
     setSelectedCustomer(null);
+  };
+
+  const handleWhatsAppRedirect = (customer) => {
+    // Get phone number (prefer WhatsApp, fallback to phone)
+    const phoneNumber = customer.whatsapp || customer.phone;
+    if (!phoneNumber) {
+      alert('No phone number available for this customer');
+      return;
+    }
+
+    // Clean phone number: remove all non-numeric characters
+    let cleanPhone = phoneNumber.replace(/\D/g, '');
+    
+    // Handle Pakistani numbers: if starts with 0, replace with 92
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '92' + cleanPhone.substring(1);
+    }
+    // If doesn't start with country code and is 10 digits, assume Pakistani number
+    else if (cleanPhone.length === 10) {
+      cleanPhone = '92' + cleanPhone;
+    }
+    
+    // Get customer name and balance
+    const customerName = customer.name || 'Customer';
+    const balance = Math.abs(customer.currentBalance || 0);
+
+    // Create the message
+    const message = `Muaziz ${customerName} ,
+
+Ap ka pani ka bill RS ${balance} hai , Mehrabni farma kar apna baqya bill jama karwa dain 
+
+Shukriya`;
+
+    // Encode message for URL
+    const encodedMessage = encodeURIComponent(message);
+    
+    // Create WhatsApp URL
+    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
+    
+    // Open WhatsApp in new tab
+    window.open(whatsappUrl, '_blank');
   };
 
   return (
@@ -311,6 +352,14 @@ const Customers = () => {
                         </Link>
                         <Button variant="outline" size="sm" onClick={() => handleEditCustomer(customer)}>
                           <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleWhatsAppRedirect(customer)}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        >
+                          <MessageCircle className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -596,6 +645,14 @@ const Customers = () => {
                                 onClick={() => handleEditCustomer(customer)}
                               >
                                 <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleWhatsAppRedirect(customer)}
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              >
+                                <MessageCircle className="h-3 w-3" />
                               </Button>
                             </div>
                           </TableCell>

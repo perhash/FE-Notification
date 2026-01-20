@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { apiService } from '@/services/api';
 import { User, LoginResponse, VerifyTokenResponse } from '@/types/auth';
+import { customerSyncService } from '@/services/customerSync';
 
 interface AuthContextType {
   user: User | null;
@@ -41,7 +42,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         if (storedToken && storedUser) {
           setToken(storedToken);
-          setUser(JSON.parse(storedUser));
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
           
           // Verify token with backend
           try {
@@ -50,6 +52,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               // Token is valid, update user data
               setUser(response.data.user);
               localStorage.setItem('user', JSON.stringify(response.data.user));
+              
+              // Start periodic sync if admin
+              if (response.data.user.role === 'ADMIN') {
+                customerSyncService.startPeriodicSync();
+              }
             } else {
               // Token is invalid, clear auth state
               clearAuthState();
@@ -68,6 +75,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     initializeAuth();
+    
+    // Cleanup: stop periodic sync on unmount
+    return () => {
+      customerSyncService.stopPeriodicSync();
+    };
   }, []);
 
   const clearAuthState = () => {
@@ -90,6 +102,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.setItem('token', newToken);
         localStorage.setItem('user', JSON.stringify(newUser));
         
+        // Fetch and store customers in IndexedDB on login
+        if (newUser.role === 'ADMIN') {
+          customerSyncService.syncCustomers().catch((error) => {
+            console.error('Failed to sync customers on login:', error);
+          });
+          
+          // Start periodic sync (6 hours)
+          customerSyncService.startPeriodicSync();
+        }
+        
         return { success: true };
       } else {
         return { success: false, message: response.message || 'Login failed' };
@@ -104,6 +126,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
+      // Stop periodic sync
+      customerSyncService.stopPeriodicSync();
+      
       // Call logout API if token exists
       if (token) {
         await apiService.logout();
