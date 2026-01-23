@@ -109,6 +109,13 @@ class ApiService {
     });
   }
 
+  async editOrderByRider(id: string, payload: { numberOfBottles: number }) {
+    return this.request(`${API_ENDPOINTS.ORDER_BY_ID(id)}/edit-by-rider`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  }
+
   // Customers API
   async getCustomers(status?: string) {
     const params = status ? `?status=${status}` : '';

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, MapPin, Phone, Package, CheckCircle, Calendar, DollarSign, User, CreditCard, FileText, X, Send } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Package, CheckCircle, Calendar, DollarSign, User, CreditCard, FileText, X, Send, Edit2, Save, Loader2 } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { apiService } from "@/services/api";
 import { toast } from "sonner";
@@ -30,6 +30,10 @@ const RiderOrderDetail = () => {
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [order, setOrder] = useState<any>(null);
+  const [isEditingQuantity, setIsEditingQuantity] = useState(false);
+  const [editedQuantity, setEditedQuantity] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [showEditConfirm, setShowEditConfirm] = useState(false);
   
   // Helper function to get payment status badge
   const getPaymentStatusBadge = (status?: string) => {
@@ -126,6 +130,81 @@ const RiderOrderDetail = () => {
       toast.error(e?.message || 'Failed to cancel order');
     }
   };
+
+  const handleEditQuantity = () => {
+    setShowEditConfirm(true);
+  };
+
+  const handleConfirmEdit = () => {
+    setShowEditConfirm(false);
+    setIsEditingQuantity(true);
+    setEditedQuantity(order?.numberOfBottles?.toString() || "1");
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingQuantity(false);
+    setEditedQuantity("");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editedQuantity || parseInt(editedQuantity) < 1) {
+      toast.error("Please enter a valid quantity (at least 1)");
+      return;
+    }
+
+    if (parseInt(editedQuantity) === order?.numberOfBottles) {
+      setIsEditingQuantity(false);
+      setEditedQuantity("");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const res = await apiService.editOrderByRider(id as string, {
+        numberOfBottles: parseInt(editedQuantity)
+      }) as any;
+
+      if (res?.success) {
+        toast.success("Order updated successfully");
+        setIsEditingQuantity(false);
+        setEditedQuantity("");
+        // Reload order to get updated values
+        const updatedRes = await apiService.getOrderById(id as string) as any;
+        if (updatedRes?.success) {
+          setOrder(updatedRes.data);
+        }
+        // Stay on the same page (auto-refresh)
+      } else {
+        toast.error(res?.message || 'Failed to update order');
+      }
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to update order');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Calculate preview values when editing
+  const calculatePreview = () => {
+    if (!order || !isEditingQuantity || !editedQuantity) return null;
+    
+    const newQuantity = parseInt(editedQuantity);
+    if (isNaN(newQuantity) || newQuantity < 1) return null;
+
+    const unitPrice = parseFloat(order.currentOrderAmount) / order.numberOfBottles;
+    const newCurrentOrderAmount = newQuantity * unitPrice;
+    const customerBalanceSnapshot = parseFloat(order.customerBalance);
+    const newTotalAmount = customerBalanceSnapshot + newCurrentOrderAmount;
+
+    return {
+      newCurrentOrderAmount,
+      newTotalAmount,
+      unitPrice
+    };
+  };
+
+  const preview = calculatePreview();
+  const canEdit = order && (order.status === 'ASSIGNED' || order.status === 'IN_PROGRESS');
 
   if (!order) {
     return (
@@ -497,7 +576,7 @@ const RiderOrderDetail = () => {
               <div className="flex justify-between items-center border-t pt-2 mt-2">
                 <span className="text-sm text-gray-600">Current Amount</span>
                 <span className="text-sm font-medium text-gray-700">
-                  RS. {order?.currentOrderAmount ?? 0}
+                  RS. {preview ? preview.newCurrentOrderAmount.toFixed(2) : (order?.currentOrderAmount ?? 0)}
                 </span>
               </div>
               <div className="flex justify-between items-center border-t pt-2 mt-2">
@@ -509,7 +588,7 @@ const RiderOrderDetail = () => {
               <div className="flex justify-between items-center border-t pt-2 mt-2 bg-cyan-50 rounded-lg p-2">
                 <span className="text-sm font-bold text-gray-900">Total Amount</span>
                 <span className="text-lg font-bold text-cyan-700">
-                  RS. {order?.totalAmount ?? 0}
+                  RS. {preview ? preview.newTotalAmount.toFixed(2) : (order?.totalAmount ?? 0)}
                 </span>
               </div>
             </div>
@@ -590,6 +669,24 @@ const RiderOrderDetail = () => {
             </div>
           </div>
 
+          {/* Edit Confirmation Dialog */}
+          <AlertDialog open={showEditConfirm} onOpenChange={setShowEditConfirm}>
+            <AlertDialogContent className="max-w-[90vw] sm:max-w-md">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Edit Order Quantity</AlertDialogTitle>
+                <AlertDialogDescription className="text-base">
+                  Are you sure you want to edit this order? You can change the number of bottles.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                <AlertDialogCancel className="w-full sm:w-auto">No, Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmEdit} className="w-full sm:w-auto">
+                  Yes, Edit
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
           {/* Action Buttons */}
           <div className="flex gap-3 pt-2">
             <AlertDialog>
@@ -599,14 +696,14 @@ const RiderOrderDetail = () => {
                   Cancel
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="max-w-[90vw] sm:max-w-md">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Confirm Cancellation</AlertDialogTitle>
-                  <AlertDialogDescription>
+                  <AlertDialogDescription className="text-base">
                     Are you sure you want to cancel order #{order.id.slice(-4)}? This will revert the customer's balance.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter>
+                <AlertDialogFooter className="flex-col sm:flex-row gap-2">
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction onClick={handleCancelOrder}>
                     Confirm Cancellation
@@ -650,6 +747,24 @@ const RiderOrderDetail = () => {
 
       {/* Desktop Layout - Keep original for desktop */}
       <div className="hidden md:block max-w-4xl mx-auto px-6 py-6">
+        {/* Edit Confirmation Dialog for Desktop */}
+        <AlertDialog open={showEditConfirm} onOpenChange={setShowEditConfirm}>
+          <AlertDialogContent className="max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Edit Order Quantity</AlertDialogTitle>
+              <AlertDialogDescription className="text-base">
+                Are you sure you want to edit this order? You can change the number of bottles.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>No, Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmEdit}>
+                Yes, Edit
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         <div className="space-y-6">
           <div className="flex items-center gap-4">
             <Link to="/rider">
@@ -695,12 +810,79 @@ const RiderOrderDetail = () => {
             <CardContent className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Quantity</span>
-                <span className="font-medium">{order?.numberOfBottles} bottles</span>
+                {isEditingQuantity ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={editedQuantity}
+                      onChange={(e) => setEditedQuantity(e.target.value)}
+                      min={1}
+                      className="w-20 h-9 text-center"
+                      disabled={isSaving}
+                    />
+                    <span className="text-sm text-muted-foreground">bottles</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{order?.numberOfBottles} bottles</span>
+                    {canEdit && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleEditQuantity}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Edit2 className="h-4 w-4 text-blue-600" />
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
+              {isEditingQuantity && preview && (
+                <div className="bg-blue-50 rounded-lg p-3 space-y-2 text-sm border border-blue-200">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">New Current Amount:</span>
+                    <span className="font-semibold text-blue-700">RS. {preview.newCurrentOrderAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">New Total Amount:</span>
+                    <span className="font-bold text-blue-700">RS. {preview.newTotalAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <Button
+                      size="sm"
+                      onClick={handleSaveEdit}
+                      disabled={isSaving}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-3 w-3 mr-1" />
+                          Save
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCancelEdit}
+                      disabled={isSaving}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
               
               <div className="flex justify-between items-center text-lg font-bold border-t pt-4">
                 <span>Current Order Amount</span>
-                <span>RS. {order?.currentOrderAmount ?? 0}</span>
+                <span>RS. {preview ? preview.newCurrentOrderAmount.toFixed(2) : (order?.currentOrderAmount ?? 0)}</span>
               </div>
 
               <div className="flex justify-between items-center">
@@ -718,7 +900,7 @@ const RiderOrderDetail = () => {
               <div className="flex justify-between items-center text-xl font-bold border-t-2 border-primary pt-4 bg-primary/5 p-3 rounded-lg">
                 <span>Total Amount</span>
                 <span className="text-primary">
-                  RS. {order?.totalAmount ?? 0}
+                  RS. {preview ? preview.newTotalAmount.toFixed(2) : (order?.totalAmount ?? 0)}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
@@ -829,16 +1011,16 @@ const RiderOrderDetail = () => {
                   Cancel Order
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="max-w-[90vw] sm:max-w-md">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Confirm Cancellation</AlertDialogTitle>
-                  <AlertDialogDescription>
+                  <AlertDialogDescription className="text-base">
                     Are you sure you want to cancel order #{order.id.slice(-4)}? This will revert the customer's balance.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleCancelOrder}>
+                <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                  <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleCancelOrder} className="w-full sm:w-auto">
                     Confirm Cancellation
                   </AlertDialogAction>
                 </AlertDialogFooter>
