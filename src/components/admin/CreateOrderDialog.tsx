@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Loader2, Info, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { Search, Plus, Loader2, Info } from "lucide-react";
 import { toast } from "sonner";
 import { apiService } from "@/services/api";
 import {
@@ -46,7 +46,6 @@ interface CreateOrderDialogProps {
 
 export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
   const [open, setOpen] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [selectedCustomerBalance, setSelectedCustomerBalance] = useState<number | null>(null);
@@ -147,23 +146,10 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
     loadBottlePrice();
   }, [open]);
 
-  // Reset form and step when dialog closes
+  // Reset loading state when dialog closes
   useEffect(() => {
     if (!open) {
       setIsCreating(false);
-      setCurrentStep(1);
-      setSearchQuery("");
-      setSelectedCustomer(null);
-      setSelectedCustomerBalance(null);
-      setBottles("");
-      setPricePerBottle("90");
-      setSelectedRider("");
-      setOrderType("delivery");
-      setPaymentAmount("");
-      setPaymentMethod("CASH");
-      setPaymentNotes("");
-      setActiveOrder(null);
-      setIsAmend(false);
     }
   }, [open]);
 
@@ -385,69 +371,27 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
     }
   }, [orderType, selectedCustomer, bottles, pricePerBottle, displayBalance]);
 
-  // Step validation
-  const validateStep = (step: number): boolean => {
-    switch (step) {
-      case 1:
-        if (!selectedCustomer) {
-          toast.error("Please select a customer");
-          return false;
-        }
-        return true;
-      case 2:
-        if (!orderType) {
-          toast.error("Please select an order type");
-          return false;
-        }
-        return true;
-      case 3:
-        if (!bottles || parseInt(bottles) <= 0) {
-          toast.error("Please enter valid quantity");
-          return false;
-        }
-        if (!pricePerBottle || parseInt(pricePerBottle) <= 0) {
-          toast.error("Please enter valid price per bottle");
-          return false;
-        }
-        if (orderType === 'delivery' && !selectedRider) {
-          toast.error("Please select a rider for delivery orders");
-          return false;
-        }
-        if (orderType === 'walkin' && !paymentAmount) {
-          toast.error("Please enter payment amount");
-          return false;
-        }
-        return true;
-      default:
-        return true;
-    }
-  };
-
-  // Navigate to next step
-  const handleNext = () => {
-    if (validateStep(currentStep)) {
-      if (currentStep < 4) {
-        setCurrentStep(currentStep + 1);
-      } else {
-        // Step 4 is review, proceed to confirmation
-        setShowConfirmDialog(true);
-      }
-    }
-  };
-
-  // Navigate to previous step
-  const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  // Handle form submission (from review step)
+  // Handle form validation and show confirmation
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (currentStep === 4) {
-      setShowConfirmDialog(true);
+
+    if (!selectedCustomer) {
+      toast.error("Please select a customer");
+      return;
     }
+
+    if (!bottles || parseInt(bottles) <= 0) {
+      toast.error("Please enter valid quantity");
+      return;
+    }
+
+    if (orderType === 'delivery' && !selectedRider) {
+      toast.error("Please select a rider for delivery orders");
+      return;
+    }
+
+    // Show confirmation dialog
+    setShowConfirmDialog(true);
   };
 
   // Actually create or amend the order after confirmation
@@ -545,52 +489,10 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
         </DialogTrigger>
         <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto md:max-h-[90vh] p-4 md:p-6">
         <DialogHeader>
-          <DialogTitle className="text-lg md:text-xl">Create New Order</DialogTitle>
+          <DialogTitle>Create New Order</DialogTitle>
         </DialogHeader>
 
-        {/* Progress Indicator */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            {[1, 2, 3, 4].map((step) => (
-              <div key={step} className="flex items-center flex-1">
-                <div className="flex flex-col items-center flex-1">
-                  <div
-                    className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-sm md:text-base font-semibold transition-all duration-300 ${
-                      currentStep > step
-                        ? 'bg-primary text-primary-foreground'
-                        : currentStep === step
-                        ? 'bg-primary text-primary-foreground ring-4 ring-primary/20'
-                        : 'bg-muted text-muted-foreground'
-                    }`}
-                  >
-                    {currentStep > step ? (
-                      <Check className="w-4 h-4 md:w-5 md:h-5" />
-                    ) : (
-                      step
-                    )}
-                  </div>
-                  <span className={`text-xs md:text-sm mt-1.5 text-center hidden sm:block ${
-                    currentStep >= step ? 'text-foreground font-medium' : 'text-muted-foreground'
-                  }`}>
-                    {step === 1 && 'Customer'}
-                    {step === 2 && 'Order Type'}
-                    {step === 3 && 'Details'}
-                    {step === 4 && 'Review'}
-                  </span>
-                </div>
-                {step < 4 && (
-                  <div
-                    className={`h-0.5 md:h-1 flex-1 mx-1 md:mx-2 transition-all duration-300 ${
-                      currentStep > step ? 'bg-primary' : 'bg-muted'
-                    }`}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-3 md:space-y-6">
           {/* Order Type Selection */}
           <div className="space-y-1.5 md:space-y-2">
             <Label className="text-sm md:text-base">Order Type</Label>
@@ -774,287 +676,228 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
             </div>
           )}
 
-          {/* Step 3: Order Details + Payment/Rider */}
-          {currentStep === 3 && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-              <div className="space-y-2">
-                <Label className="text-base md:text-lg font-semibold">Order Details</Label>
-                <div className="grid gap-3 md:gap-4 md:grid-cols-2">
-                  <div className="space-y-1.5 md:space-y-2">
-                    <Label htmlFor="bottles" className="text-sm md:text-base">Bottle Quantity *</Label>
-                    <Input
-                      id="bottles"
-                      type="number"
-                      min="1"
-                      placeholder="Enter quantity"
-                      value={bottles}
-                      onChange={(e) => setBottles(e.target.value)}
-                      required
-                      className="h-11 md:h-10 text-base md:text-sm"
-                      style={{ fontSize: '16px' }}
-                    />
-                  </div>
-                  <div className="space-y-1.5 md:space-y-2">
-                    <Label htmlFor="price" className="text-sm md:text-base">Price per Bottle (RS.) *</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      min="1"
-                      placeholder="90"
-                      value={pricePerBottle}
-                      onChange={(e) => setPricePerBottle(e.target.value)}
-                      required
-                      className="h-11 md:h-10 text-base md:text-sm"
-                      style={{ fontSize: '16px' }}
-                    />
+          {/* Order Details */}
+          <div className="grid gap-3 md:gap-4 md:grid-cols-2">
+            <div className="space-y-1.5 md:space-y-2">
+              <Label htmlFor="bottles" className="text-sm md:text-base">Bottle Quantity *</Label>
+              <Input
+                id="bottles"
+                type="number"
+                min="1"
+                placeholder="Enter quantity"
+                value={bottles}
+                onChange={(e) => setBottles(e.target.value)}
+                required
+                className="h-11 md:h-10 text-base md:text-sm"
+                style={{ fontSize: '16px' }}
+              />
+            </div>
+
+            <div className="space-y-1.5 md:space-y-2">
+              <Label htmlFor="price" className="text-sm md:text-base">Price per Bottle (RS.) *</Label>
+              <Input
+                id="price"
+                type="number"
+                min="1"
+                placeholder="90"
+                value={pricePerBottle}
+                onChange={(e) => setPricePerBottle(e.target.value)}
+                required
+                className="h-11 md:h-10 text-base md:text-sm"
+                style={{ fontSize: '16px' }}
+              />
+            </div>
+          </div>
+
+          {/* Order Amount Summary */}
+          {bottles && pricePerBottle && selectedCustomer && (
+            <div className="space-y-3">
+              {/* Current Order Amount */}
+              <div className="rounded-lg border bg-primary/5 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">Current Order Amount</span>
+                  <span className="text-2xl font-bold">
+                    RS. {parseInt(bottles) * parseInt(pricePerBottle)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Pending Balance */}
+              <div className="rounded-lg border bg-muted/50 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">Pending Balance</span>
+                  <div className="text-right">
+                    <Badge variant={(displayBalance ?? 0) < 0 ? "destructive" : "default"}>
+                      {(displayBalance ?? 0) < 0 ? "Payable" : (displayBalance ?? 0) > 0 ? "Receivable" : 'Clear'}
+                    </Badge>
+                    <p className="text-lg font-semibold mt-1">
+                      RS. {Math.abs(displayBalance ?? 0)}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* Order Amount Summary - Compact for Mobile */}
-              {bottles && pricePerBottle && selectedCustomer && (
-                <div className="space-y-2 md:space-y-3">
-                  <div className="rounded-lg border bg-primary/5 p-2.5 md:p-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-sm md:text-base">Current Order Amount</span>
-                      <span className="text-lg md:text-2xl font-bold">
-                        RS. {parseInt(bottles) * parseInt(pricePerBottle)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="rounded-lg border bg-muted/50 p-2.5 md:p-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-sm md:text-base">Pending Balance</span>
-                      <div className="text-right">
-                        <Badge variant={(displayBalance ?? 0) < 0 ? "destructive" : "default"} className="text-xs">
-                          {(displayBalance ?? 0) < 0 ? "Payable" : (displayBalance ?? 0) > 0 ? "Receivable" : 'Clear'}
-                        </Badge>
-                        <p className="text-base md:text-lg font-semibold mt-0.5">
-                          RS. {Math.abs(displayBalance ?? 0)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="rounded-lg border-2 border-primary bg-primary/10 p-2.5 md:p-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-sm md:text-lg">Total</span>
-                      <span className="text-xl md:text-3xl font-bold text-primary">
-                        RS. {(() => {
-                          const currentOrderAmount = parseInt(bottles) * parseInt(pricePerBottle);
-                          const customerBalance = displayBalance;
-                          if (customerBalance < 0) {
-                            return currentOrderAmount - Math.abs(customerBalance);
-                          } else if (customerBalance > 0) {
-                            return currentOrderAmount + customerBalance;
-                          } else {
-                            return currentOrderAmount;
-                          }
-                        })()}
-                      </span>
-                    </div>
-                  </div>
+              {/* Total for Admin Understanding */}
+              <div className="rounded-lg border-2 border-primary bg-primary/10 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-lg">Total for Admin</span>
+                  <span className="text-3xl font-bold text-primary">
+                    RS. {(() => {
+                      const currentOrderAmount = parseInt(bottles) * parseInt(pricePerBottle);
+                      const customerBalance = displayBalance;
+                      if (customerBalance < 0) {
+                        // Payable - subtract from order amount
+                        return currentOrderAmount - Math.abs(customerBalance);
+                      } else if (customerBalance > 0) {
+                        // Receivable - add to order amount
+                        return currentOrderAmount + customerBalance;
+                      } else {
+                        // Clear balance - no adjustment
+                        return currentOrderAmount;
+                      }
+                    })()}
+                  </span>
                 </div>
-              )}
+                <p className="text-sm text-muted-foreground mt-2">
+                  {(() => {
+                    const customerBalance = displayBalance;
+                    if (customerBalance < 0) {
+                      return `Order amount minus payable balance`;
+                    } else if (customerBalance > 0) {
+                      return `Order amount plus receivable balance`;
+                    } else {
+                      return `No balance adjustment needed`;
+                    }
+                  })()}
+                </p>
+              </div>
+            </div>
+          )}
 
-              {/* Rider Assignment - Only for Delivery Orders */}
-              {orderType === 'delivery' && (
+          {/* Rider Assignment - Only for Delivery Orders */}
+          {orderType === 'delivery' && (
+            <div className="space-y-1.5 md:space-y-2">
+              <Label htmlFor="rider" className="text-sm md:text-base">Assign Rider (required for delivery)</Label>
+              <Select value={selectedRider} onValueChange={setSelectedRider} disabled={isAmend && !!activeOrder?.riderId}>
+                <SelectTrigger id="rider" className="h-11 md:h-10 text-base md:text-sm" style={{ fontSize: '16px' }}>
+                  <SelectValue placeholder={loadingRiders ? 'Loading riders...' : (isAmend && activeOrder?.rider?.name ? activeOrder.rider.name : 'Select a rider')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {riders.map((rider: any) => (
+                    <SelectItem key={rider.id} value={rider.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{rider.name}</span>
+                        <Badge variant="outline" className="ml-auto">
+                          {rider.isActive ? 'active' : 'inactive'}
+                        </Badge>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Walk-in Payment Section */}
+          {orderType === 'walkin' && selectedCustomer && bottles && pricePerBottle && (
+            <div className="space-y-3 md:space-y-4 p-3 md:p-4 rounded-lg border">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-blue-900 text-sm md:text-base">Payment Information</h3>
+                {isUnknownWalkInCustomer && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground hover:text-primary cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Walk-in unknown customer payment amount is calculated automatically and cannot be edited. To customize payment details, please add this customer to your database first.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 md:gap-4">
                 <div className="space-y-1.5 md:space-y-2">
-                  <Label htmlFor="rider" className="text-sm md:text-base">Assign Rider (required) *</Label>
-                  <Select value={selectedRider} onValueChange={setSelectedRider} disabled={isAmend && !!activeOrder?.riderId}>
-                    <SelectTrigger id="rider" className="h-11 md:h-10 text-base md:text-sm" style={{ fontSize: '16px' }}>
-                      <SelectValue placeholder={loadingRiders ? 'Loading riders...' : (isAmend && activeOrder?.rider?.name ? activeOrder.rider.name : 'Select a rider')} />
+                  <Label htmlFor="paymentAmount" className="text-sm md:text-base">Payment Amount</Label>
+                  <Input
+                    id="paymentAmount"
+                    type="number"
+                    placeholder="Enter amount"
+                    value={paymentAmount}
+                    onChange={(e) => !isUnknownWalkInCustomer && setPaymentAmount(e.target.value)}
+                    min="0"
+                    disabled={isUnknownWalkInCustomer}
+                    readOnly={isUnknownWalkInCustomer}
+                    className={`h-11 md:h-10 text-base md:text-sm ${isUnknownWalkInCustomer ? 'bg-muted cursor-not-allowed' : ''}`}
+                    style={{ fontSize: '16px' }}
+                  />
+                  {isUnknownWalkInCustomer && (
+                    <p className="text-xs text-muted-foreground italic">
+                      Payment amount matches total (auto-calculated)
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-1.5 md:space-y-2">
+                  <Label htmlFor="paymentMethod" className="text-sm md:text-base">Payment Method</Label>
+                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                    <SelectTrigger className="h-11 md:h-10 text-base md:text-sm" style={{ fontSize: '16px' }}>
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {riders.map((rider: any) => (
-                        <SelectItem key={rider.id} value={rider.id}>
-                          <div className="flex items-center gap-2">
-                            <span>{rider.name}</span>
-                            <Badge variant="outline" className="ml-auto">
-                              {rider.isActive ? 'active' : 'inactive'}
-                            </Badge>
-                          </div>
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="CASH">Cash</SelectItem>
+                      <SelectItem value="CARD">Card</SelectItem>
+                      <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
+                      <SelectItem value="JAZZCASH">JazzCash</SelectItem>
+                      <SelectItem value="EASYPAISA">EasyPaisa</SelectItem>
+                      <SelectItem value="NAYA_PAY">Naya Pay</SelectItem>
+                      <SelectItem value="SADAPAY">SadaPay</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              )}
+              </div>
 
-              {/* Walk-in Payment Section */}
-              {orderType === 'walkin' && selectedCustomer && bottles && pricePerBottle && (
-                <div className="space-y-3 md:space-y-4 p-3 md:p-4 rounded-lg border">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-blue-900 text-sm md:text-base">Payment Information</h3>
-                    {isUnknownWalkInCustomer && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-4 w-4 text-muted-foreground hover:text-primary cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p>Walk-in unknown customer payment amount is calculated automatically and cannot be edited.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 md:gap-4">
-                    <div className="space-y-1.5 md:space-y-2">
-                      <Label htmlFor="paymentAmount" className="text-sm md:text-base">Payment Amount *</Label>
-                      <Input
-                        id="paymentAmount"
-                        type="number"
-                        placeholder="Enter amount"
-                        value={paymentAmount}
-                        onChange={(e) => !isUnknownWalkInCustomer && setPaymentAmount(e.target.value)}
-                        min="0"
-                        disabled={isUnknownWalkInCustomer}
-                        readOnly={isUnknownWalkInCustomer}
-                        className={`h-11 md:h-10 text-base md:text-sm ${isUnknownWalkInCustomer ? 'bg-muted cursor-not-allowed' : ''}`}
-                        style={{ fontSize: '16px' }}
-                      />
-                    </div>
-                    <div className="space-y-1.5 md:space-y-2">
-                      <Label htmlFor="paymentMethod" className="text-sm md:text-base">Payment Method</Label>
-                      <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                        <SelectTrigger className="h-11 md:h-10 text-base md:text-sm" style={{ fontSize: '16px' }}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="CASH">Cash</SelectItem>
-                          <SelectItem value="CARD">Card</SelectItem>
-                          <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
-                          <SelectItem value="JAZZCASH">JazzCash</SelectItem>
-                          <SelectItem value="EASYPAISA">EasyPaisa</SelectItem>
-                          <SelectItem value="NAYA_PAY">Naya Pay</SelectItem>
-                          <SelectItem value="SADAPAY">SadaPay</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5 md:space-y-2">
-                    <Label htmlFor="paymentNotes" className="text-sm md:text-base">Payment Notes (Optional)</Label>
-                    <Input
-                      id="paymentNotes"
-                      placeholder="Add any notes about this payment..."
-                      value={paymentNotes}
-                      onChange={(e) => setPaymentNotes(e.target.value)}
-                      className="h-11 md:h-10 text-base md:text-sm"
-                      style={{ fontSize: '16px' }}
-                    />
-                  </div>
+              {isUnknownWalkInCustomer && (
+                <div className="flex items-start gap-2 p-2.5 md:p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs md:text-sm text-blue-700 flex-1">
+                    This is the generic walk-in customer. Want to customize payment details? Add them as a customer to your database.
+                  </p>
+                  <AddCustomerDialog 
+                    trigger={
+                      <Button type="button" variant="outline" size="sm" className="flex-shrink-0 text-xs h-7 md:h-9">
+                        Add as Customer
+                      </Button>
+                    }
+                  />
                 </div>
               )}
-            </div>
-          )}
 
-          {/* Step 4: Review & Confirm */}
-          {currentStep === 4 && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-              <div className="space-y-3">
-                <Label className="text-base md:text-lg font-semibold">Review Order Details</Label>
-                
-                {/* Customer Summary */}
-                <div className="rounded-lg border bg-muted/50 p-3 md:p-4">
-                  <h4 className="font-semibold text-sm md:text-base mb-2">Customer Information</h4>
-                  <div className="space-y-1 text-sm">
-                    <p><span className="text-muted-foreground">Name:</span> <span className="font-medium">{selectedCustomer?.name}</span></p>
-                    <p><span className="text-muted-foreground">Phone:</span> <span className="font-medium">{selectedCustomer?.phone}</span></p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">Balance:</span>
-                      <Badge variant={(displayBalance ?? 0) < 0 ? "destructive" : "default"} className="text-xs">
-                        {(displayBalance ?? 0) < 0 ? `Payable RS. ${Math.abs(displayBalance ?? 0)}` : (displayBalance ?? 0) > 0 ? `Receivable RS. ${displayBalance}` : 'Clear'}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Order Summary */}
-                <div className="rounded-lg border bg-primary/5 p-3 md:p-4">
-                  <h4 className="font-semibold text-sm md:text-base mb-2">Order Details</h4>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <p><span className="text-muted-foreground">Type:</span> <span className="font-medium capitalize">{orderType}</span></p>
-                    <p><span className="text-muted-foreground">Bottles:</span> <span className="font-medium">{bottles}</span></p>
-                    <p><span className="text-muted-foreground">Price per Bottle:</span> <span className="font-medium">RS. {pricePerBottle}</span></p>
-                    <p><span className="text-muted-foreground">Order Amount:</span> <span className="font-medium">RS. {bottles && pricePerBottle ? parseInt(bottles) * parseInt(pricePerBottle) : 0}</span></p>
-                    {orderType === 'delivery' && selectedRider && (
-                      <p className="col-span-2"><span className="text-muted-foreground">Rider:</span> <span className="font-medium">{riders.find(r => r.id === selectedRider)?.name || 'Unknown'}</span></p>
-                    )}
-                    {orderType === 'walkin' && paymentAmount && (
-                      <>
-                        <p><span className="text-muted-foreground">Payment:</span> <span className="font-medium">RS. {paymentAmount}</span></p>
-                        <p><span className="text-muted-foreground">Method:</span> <span className="font-medium">{paymentMethod}</span></p>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Total Summary */}
-                {selectedCustomer && bottles && pricePerBottle && (
-                  <div className="rounded-lg border-2 border-primary bg-primary/10 p-3 md:p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-base md:text-lg font-semibold">Total Amount</span>
-                      <span className="text-2xl md:text-3xl font-bold text-primary">
-                        RS. {(() => {
-                          const currentOrderAmount = parseInt(bottles) * parseInt(pricePerBottle);
-                          const customerBalance = displayBalance;
-                          if (customerBalance < 0) {
-                            return currentOrderAmount - Math.abs(customerBalance);
-                          } else if (customerBalance > 0) {
-                            return currentOrderAmount + customerBalance;
-                          } else {
-                            return currentOrderAmount;
-                          }
-                        })()}
-                      </span>
-                    </div>
-                  </div>
-                )}
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="paymentNotes" className="text-sm md:text-base">Payment Notes (Optional)</Label>
+                <Input
+                  id="paymentNotes"
+                  placeholder="Add any notes about this payment..."
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                  className="h-11 md:h-10 text-base md:text-sm"
+                  style={{ fontSize: '16px' }}
+                />
               </div>
             </div>
           )}
 
-          {/* Navigation Buttons */}
-          <div className="flex gap-2 md:gap-3 justify-between pt-4 border-t">
-            <div className="flex gap-2">
-              {currentStep > 1 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleBack}
-                  disabled={isCreating}
-                  className="h-11 md:h-10 text-sm md:text-base"
-                >
-                  <ChevronLeft className="mr-1 h-4 w-4" />
-                  Back
-                </Button>
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-                disabled={isCreating}
-                className="h-11 md:h-10 text-sm md:text-base"
-              >
-                Cancel
-              </Button>
-            </div>
-            <Button
-              type={currentStep === 4 ? "submit" : "button"}
-              onClick={currentStep < 4 ? handleNext : undefined}
-              disabled={isCreating}
-              className="h-11 md:h-10 text-sm md:text-base"
-            >
+          {/* Action Buttons */}
+          <div className="flex gap-2 md:gap-3 justify-end pt-2">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isCreating} className="h-11 md:h-10 text-sm md:text-base">
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isCreating} className="h-11 md:h-10 text-sm md:text-base">
               {isCreating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   {isAmend ? 'Updating...' : 'Creating...'}
                 </>
-              ) : currentStep === 4 ? (
-                isAmend ? 'Confirm & Update Order' : "Confirm & Create Order"
               ) : (
-                <>
-                  Next
-                  <ChevronRight className="ml-1 h-4 w-4" />
-                </>
+                isAmend ? 'Update Order' : "Create Order"
               )}
             </Button>
           </div>
