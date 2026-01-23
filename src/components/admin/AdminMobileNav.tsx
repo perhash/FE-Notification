@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Home, Package, Grid3x3, Bell, LogOut, Users, TruckIcon, DollarSign, BarChart3, Settings, User } from "lucide-react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { Home, Calendar, Grid3x3, Bell, LogOut, Users, TruckIcon, Settings, User } from "lucide-react";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { NotificationDrawer } from "@/components/NotificationDrawer";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -19,6 +19,7 @@ import { ChevronUp, ChevronDown } from "lucide-react";
 
 export function AdminMobileNav() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout } = useAuth();
   const { unreadCount } = useNotifications();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -29,23 +30,32 @@ export function AdminMobileNav() {
     navigate('/login');
   };
 
+  // Filtered menu items - removed Orders, Payments, Reports
   const allMenuItems = [
     { title: "Dashboard", url: "/admin", icon: Home },
     { title: "Customers", url: "/admin/customers", icon: Users },
     { title: "Riders", url: "/admin/riders", icon: TruckIcon },
-    { title: "Orders", url: "/admin/orders", icon: Package },
-    { title: "Payments", url: "/admin/payments", icon: DollarSign },
-    { title: "Reports", url: "/admin/reports", icon: BarChart3 },
     { title: "Profile", url: "/admin/profile", icon: User },
     { title: "Settings", url: "/admin/settings", icon: Settings },
   ];
 
   const navItemClass = (active: boolean) =>
-    `flex flex-col items-center justify-center gap-1 py-2 px-3 flex-1 min-w-0 ${active ? "text-cyan-600" : "text-gray-500"}`;
+    `flex flex-col items-center justify-center gap-1 py-2 px-3 flex-1 min-w-0 touch-manipulation ${active ? "text-cyan-600" : "text-gray-500"}`;
+
+  // Handle navigation with scroll reset and prevent reload if already active
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, url: string, isActive: boolean) => {
+    if (isActive) {
+      e.preventDefault();
+      return;
+    }
+    
+    // Reset scroll position on navigation
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white/90 backdrop-blur-lg md:hidden shadow-2xl">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white/90 backdrop-blur-lg md:hidden shadow-2xl" style={{ touchAction: 'manipulation' }}>
         <div className="flex items-stretch h-16">
           {/* Dashboard Button */}
           <NavLink
@@ -54,26 +64,37 @@ export function AdminMobileNav() {
             className={({ isActive }) =>
               `${navItemClass(isActive)}`
             }
+            onClick={(e) => {
+              const isActive = location.pathname === '/admin';
+              handleNavClick(e, '/admin', isActive);
+            }}
           >
             <Home className="h-6 w-6" />
             <span className="text-xs font-medium">Dashboard</span>
           </NavLink>
           
-          {/* Orders Button */}
+          {/* Daily Closing Button */}
           <NavLink
-            to="/admin/orders"
+            to="/admin/daily-closings"
             className={({ isActive }) =>
               `${navItemClass(isActive)}`
             }
+            onClick={(e) => {
+              const isActive = location.pathname === '/admin/daily-closings';
+              handleNavClick(e, '/admin/daily-closings', isActive);
+            }}
           >
-            <Package className="h-6 w-6" />
-            <span className="text-xs font-medium">Orders</span>
+            <Calendar className="h-6 w-6" />
+            <span className="text-xs font-medium">Daily Closing</span>
           </NavLink>
 
           {/* Six-dot Menu */}
           <Drawer open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <DrawerTrigger asChild>
-              <button className={`flex flex-col items-center justify-center gap-1 py-2 px-3 flex-1 min-w-0 text-gray-500 hover:text-cyan-600 transition-colors`}>
+              <button 
+                className={`flex flex-col items-center justify-center gap-1 py-2 px-3 flex-1 min-w-0 text-gray-500 hover:text-cyan-600 transition-colors touch-manipulation`}
+                style={{ touchAction: 'manipulation' }}
+              >
                 <div className="relative">
                   <Grid3x3 className="h-6 w-6" />
                   {isMenuOpen ? (
@@ -98,7 +119,17 @@ export function AdminMobileNav() {
                   <DrawerClose key={item.title} asChild>
                     <NavLink
                       to={item.url}
-                      className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 hover:bg-cyan-50 hover:border-cyan-300 transition-all"
+                      className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 hover:bg-cyan-50 hover:border-cyan-300 transition-all touch-manipulation"
+                      style={{ touchAction: 'manipulation' }}
+                      onClick={(e) => {
+                        const isActive = location.pathname === item.url || (item.url === '/admin' && location.pathname === '/admin');
+                        if (isActive) {
+                          e.preventDefault();
+                          setIsMenuOpen(false);
+                          return;
+                        }
+                        window.scrollTo({ top: 0, behavior: 'instant' });
+                      }}
                     >
                       <item.icon className="h-6 w-6 text-gray-600" />
                       <span className="text-sm font-medium text-gray-700">{item.title}</span>
@@ -113,7 +144,10 @@ export function AdminMobileNav() {
           <div className="flex-1 flex items-center justify-center min-w-0">
             <NotificationDrawer 
               trigger={
-                <button className="flex flex-col items-center justify-center gap-1 h-full w-full text-gray-500 hover:text-cyan-600">
+                <button 
+                  className="flex flex-col items-center justify-center gap-1 h-full w-full text-gray-500 hover:text-cyan-600 touch-manipulation"
+                  style={{ touchAction: 'manipulation' }}
+                >
                   <div className="relative inline-block">
                     <Bell className="h-6 w-6" />
                     {unreadCount > 0 && (
@@ -134,7 +168,8 @@ export function AdminMobileNav() {
           {/* Logout Button */}
           <button
             onClick={handleLogout}
-            className={`flex flex-col items-center justify-center gap-1 py-2 px-3 flex-1 min-w-0 text-gray-500 hover:text-red-600 transition-colors`}
+            className={`flex flex-col items-center justify-center gap-1 py-2 px-3 flex-1 min-w-0 text-gray-500 hover:text-red-600 transition-colors touch-manipulation`}
+            style={{ touchAction: 'manipulation' }}
           >
             <LogOut className="h-6 w-6" />
             <span className="text-xs font-medium">Logout</span>
