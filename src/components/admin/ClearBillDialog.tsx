@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -51,16 +51,23 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
   const [activeOrderMap, setActiveOrderMap] = useState<Record<string, boolean>>({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
-  // Debounced customer search - IndexedDB first, then API fallback
+  const apiSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Instant IndexedDB search (2ms debounce)
   useEffect(() => {
     const handler = setTimeout(async () => {
       if (!searchQuery) {
         setCustomerResults([]);
         return;
       }
+
+      // Cancel any pending API search
+      if (apiSearchTimeoutRef.current) {
+        clearTimeout(apiSearchTimeoutRef.current);
+        apiSearchTimeoutRef.current = null;
+      }
+
       try {
-        setLoadingCustomers(true);
-        
         // Initialize IndexedDB if needed
         try {
           await indexedDBService.init();
@@ -68,7 +75,7 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
           console.error('IndexedDB init error:', error);
         }
 
-        // Search IndexedDB first
+        // Search IndexedDB
         let results: any[] = [];
         try {
           const indexedResults = await indexedDBService.searchCustomers(searchQuery);
@@ -77,36 +84,64 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
           console.error('IndexedDB search error:', error);
         }
 
-        // If no results in IndexedDB, fallback to API
-        if (results.length === 0) {
-          try {
-            const res = await apiService.searchCustomers(searchQuery);
-            if ((res as any).success) {
-              results = (res as any).data || [];
-              // Store API results in IndexedDB for future searches
-              if (results.length > 0) {
-                try {
-                  await indexedDBService.storeCustomers(results);
-                } catch (error) {
-                  console.error('Failed to store customers in IndexedDB:', error);
+        // Show IndexedDB results immediately
+        setCustomerResults(results);
+
+        // If no results in IndexedDB and no customer selected, schedule API search
+        if (results.length === 0 && !selectedCustomer) {
+          // Clear any existing API search timeout
+          if (apiSearchTimeoutRef.current) {
+            clearTimeout(apiSearchTimeoutRef.current);
+          }
+
+          // Schedule API search after 5 seconds
+          apiSearchTimeoutRef.current = setTimeout(async () => {
+            // Double check: user hasn't selected a customer and still searching
+            if (!selectedCustomer && searchQuery) {
+              try {
+                setLoadingCustomers(true);
+                const res = await apiService.searchCustomers(searchQuery);
+                if ((res as any).success) {
+                  const apiResults = (res as any).data || [];
+                  // Store API results in IndexedDB for future searches
+                  if (apiResults.length > 0) {
+                    try {
+                      await indexedDBService.storeCustomers(apiResults);
+                    } catch (error) {
+                      console.error('Failed to store customers in IndexedDB:', error);
+                    }
+                  }
+                  // Only update if user hasn't selected a customer
+                  if (!selectedCustomer) {
+                    setCustomerResults(apiResults);
+                  }
                 }
+              } catch (e) {
+                console.error('API search error:', e);
+                if (!selectedCustomer) {
+                  setCustomerResults([]);
+                }
+              } finally {
+                setLoadingCustomers(false);
               }
             }
-          } catch (e) {
-            console.error('API search error:', e);
-          }
+            apiSearchTimeoutRef.current = null;
+          }, 5000);
         }
-
-        setCustomerResults(results);
       } catch (e) {
-        console.error('Customer search error:', e);
-        setCustomerResults([]);
-      } finally {
-        setLoadingCustomers(false);
+        console.error('IndexedDB search error:', e);
       }
-    }, 5000);
+    }, 2);
     return () => clearTimeout(handler);
-  }, [searchQuery]);
+  }, [searchQuery, selectedCustomer]);
+
+  // Cleanup API search timeout when customer is selected
+  useEffect(() => {
+    if (selectedCustomer && apiSearchTimeoutRef.current) {
+      clearTimeout(apiSearchTimeoutRef.current);
+      apiSearchTimeoutRef.current = null;
+    }
+  }, [selectedCustomer]);
 
   // For each searched customer, detect if they have an in-progress order and mark them to exclude from list
   useEffect(() => {
