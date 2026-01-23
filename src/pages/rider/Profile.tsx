@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Mail, Phone, Key, Eye, EyeOff, ArrowLeft, Droplet, Lock, CheckCircle } from "lucide-react";
+import { User, Mail, Phone, Key, Eye, EyeOff, ArrowLeft, Droplet, Lock, CheckCircle, RefreshCw, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { apiService } from "@/services/api";
 import { toast } from "sonner";
+import { customerSyncService } from "@/services/customerSync";
 
 interface UserProfile {
   id: string;
@@ -31,18 +32,42 @@ const RiderProfile = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordUpdating, setPasswordUpdating] = useState(false);
+  const [syncingCustomers, setSyncingCustomers] = useState(false);
+  const [canCreateOrders, setCanCreateOrders] = useState(false);
 
   useEffect(() => {
     const loadUserProfile = () => {
       const userData = apiService.getCurrentUser();
       if (userData) {
         setUser(userData);
+        // Check canCreateOrders permission
+        if (userData?.riderProfile) {
+          setCanCreateOrders(!!userData.riderProfile.canCreateOrders);
+        } else if (userData?.profile) {
+          setCanCreateOrders(!!userData.profile.canCreateOrders);
+        }
       }
       setLoading(false);
     };
 
     loadUserProfile();
   }, []);
+
+  const handleSyncCustomers = async () => {
+    setSyncingCustomers(true);
+    try {
+      const result = await customerSyncService.syncCustomers();
+      if (result.success) {
+        toast.success("Customers synced successfully");
+      } else {
+        toast.error(result.message || "Failed to sync customers");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to sync customers");
+    } finally {
+      setSyncingCustomers(false);
+    }
+  };
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,6 +295,36 @@ const RiderProfile = () => {
               </Button>
             </form>
           </div>
+
+          {/* Customer Sync Card - Only if canCreateOrders */}
+          {canCreateOrders && (
+            <div className="bg-gradient-to-br from-white to-green-50/30 rounded-2xl p-4 border border-green-100">
+              <div className="flex items-center gap-2 mb-3">
+                <RefreshCw className="h-5 w-5 text-green-600" />
+                <p className="font-bold text-gray-900">Sync Customers</p>
+              </div>
+              <p className="text-sm text-gray-600 mb-3">
+                Sync customer data to local storage for faster search. Customers are automatically synced every 6 hours.
+              </p>
+              <Button
+                onClick={handleSyncCustomers}
+                disabled={syncingCustomers}
+                className="w-full h-11 bg-green-600 hover:bg-green-700 text-white"
+              >
+                {syncingCustomers ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Sync Customers
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -425,6 +480,40 @@ const RiderProfile = () => {
                 </form>
               </CardContent>
             </Card>
+
+            {/* Customer Sync Card - Only if canCreateOrders */}
+            {canCreateOrders && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <RefreshCw className="h-5 w-5" />
+                    Sync Customers
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Sync customer data to local storage for faster search. Customers are automatically synced every 6 hours.
+                  </p>
+                  <Button
+                    onClick={handleSyncCustomers}
+                    disabled={syncingCustomers}
+                    className="w-full"
+                  >
+                    {syncingCustomers ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Syncing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Sync Customers
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

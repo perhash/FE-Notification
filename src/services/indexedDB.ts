@@ -12,6 +12,8 @@ interface Customer {
   whatsapp?: string;
   address?: string;
   houseNo?: string;
+  area?: string;
+  city?: string;
   isActive: boolean;
   // Exclude balance from stored data
 }
@@ -98,6 +100,8 @@ class IndexedDBService {
       whatsapp: customer.whatsapp,
       address: customer.address,
       houseNo: customer.houseNo,
+      area: customer.area,
+      city: customer.city,
       isActive: customer.isActive !== false,
     }));
 
@@ -160,12 +164,13 @@ class IndexedDBService {
         const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
         if (cursor) {
           const customer = cursor.value;
+          // Search by name and address only (no phone/whatsapp for rider search)
           const matches =
             customer.name?.toLowerCase().includes(lowerQuery) ||
-            customer.phone?.includes(query) ||
-            customer.whatsapp?.includes(query) ||
             customer.houseNo?.toLowerCase().includes(lowerQuery) ||
-            customer.address?.toLowerCase().includes(lowerQuery);
+            customer.address?.toLowerCase().includes(lowerQuery) ||
+            customer.area?.toLowerCase().includes(lowerQuery) ||
+            customer.city?.toLowerCase().includes(lowerQuery);
 
           if (matches && customer.isActive !== false) {
             results.push(customer);
