@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -53,8 +52,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
   const [bottles, setBottles] = useState("");
   const [pricePerBottle, setPricePerBottle] = useState("");
   const [selectedRider, setSelectedRider] = useState("");
-  const [notes, setNotes] = useState("");
-  const [priority, setPriority] = useState("medium");
+  // Notes and Priority removed - always use default values
   const [orderType, setOrderType] = useState("delivery");
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [loadingRiders, setLoadingRiders] = useState(false);
@@ -408,8 +406,8 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
         const payload: any = {
           numberOfBottles: parseInt(bottles),
           unitPrice: parseInt(pricePerBottle),
-          notes: notes || undefined,
-          priority: priority === 'high' ? 'HIGH' : priority === 'low' ? 'LOW' : 'NORMAL',
+          // Notes removed - no longer sending notes
+          priority: 'NORMAL', // Always send MEDIUM/NORMAL as default
           ...(orderType === 'delivery' && selectedRider ? { riderId: selectedRider } : {})
         };
         res = await apiService.amendOrder(activeOrder.id, payload);
@@ -418,8 +416,8 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
           customerId: selectedCustomer.id === 'walkin' ? 'walkin' : selectedCustomer.id,
           numberOfBottles: parseInt(bottles),
           unitPrice: parseInt(pricePerBottle),
-          notes: notes || undefined,
-          priority: priority === 'high' ? 'HIGH' : priority === 'low' ? 'LOW' : 'NORMAL',
+          // Notes removed - no longer sending notes
+          priority: 'NORMAL', // Always send MEDIUM/NORMAL as default
           orderType: orderType.toUpperCase(),
         };
         if (orderType === 'delivery' && selectedRider) {
@@ -460,8 +458,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
         setBottles("");
         setPricePerBottle("90");
         setSelectedRider("");
-        setNotes("");
-        setPriority('medium');
+        // Notes and Priority removed
         setOrderType('delivery');
         setPaymentAmount("");
         setPaymentMethod("CASH");
@@ -490,20 +487,17 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
             </Button>
           )}
         </DialogTrigger>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto md:max-h-[90vh] p-4 md:p-6">
         <DialogHeader>
           <DialogTitle>Create New Order</DialogTitle>
-          <DialogDescription>
-            Search for customer and fill in order details
-          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-3 md:space-y-6">
           {/* Order Type Selection */}
-          <div className="space-y-2">
-            <Label>Order Type</Label>
+          <div className="space-y-1.5 md:space-y-2">
+            <Label className="text-sm md:text-base">Order Type</Label>
             <Select value={orderType} onValueChange={setOrderType} disabled={isAmend}>
-              <SelectTrigger>
+              <SelectTrigger className="h-11 md:h-10 text-base md:text-sm" style={{ fontSize: '16px' }}>
                 <SelectValue placeholder="Select order type" />
               </SelectTrigger>
               <SelectContent>
@@ -561,21 +555,17 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
 
           {/* Customer Search */}
           <div className="space-y-2">
-            <Label>
-              Search Customer {orderType === 'walkin' ? '(or select Walk-in Customer for unknown customers)' : '(by name, phone, WhatsApp, or house number)'}
-            </Label>
+            <Label>Search Customer</Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search by name, phone, WhatsApp, or house number..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 text-base md:text-sm"
+                style={{ fontSize: '16px' }}
               />
             </div>
-            <p className="text-xs text-muted-foreground">
-              You can search by customer name, phone number, WhatsApp number, or house number
-            </p>
 
             {searchQuery && !selectedCustomer && (
               <div className="mt-2 max-h-48 overflow-y-auto border rounded-md">
@@ -639,34 +629,34 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
             )}
           </div>
 
-          {/* Selected Customer Info */}
+          {/* Selected Customer Info - Compact Display */}
           {selectedCustomer && (
-            <div className="rounded-lg border bg-muted/50 p-4">
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <p className="font-medium">{selectedCustomer.name}</p>
-                  <p className="text-sm text-muted-foreground">{selectedCustomer.phone}</p>
+            <div className="rounded-lg border bg-muted/50 p-2 md:p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0 space-y-0.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-medium text-sm md:text-base truncate">{selectedCustomer.name}</p>
+                    {isAmend && (
+                      <Badge className="bg-amber-100 text-amber-700 text-xs">In Progress</Badge>
+                    )}
+                  </div>
+                  <p className="text-xs md:text-sm text-muted-foreground truncate">{selectedCustomer.phone}</p>
+                  {selectedCustomer.houseNo && (
+                    <p className="text-xs text-blue-600 font-medium">House: {selectedCustomer.houseNo}</p>
+                  )}
                   {selectedCustomer.address && (
-                    <p className="text-sm text-muted-foreground">{selectedCustomer.address}</p>
+                    <p className="text-xs text-muted-foreground truncate">{selectedCustomer.address}</p>
                   )}
                 </div>
-                <div className="text-right">
-                  {isAmend && (
-                    <div className="mb-1">
-                      <Badge className="bg-amber-100 text-amber-700">Order in progress</Badge>
-                    </div>
-                  )}
+                <div className="text-right flex-shrink-0">
                   {loadingBalance ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm text-muted-foreground">Loading balance...</span>
-                    </div>
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   ) : (
                     <>
-                      <Badge variant={(displayBalance ?? 0) < 0 ? "destructive" : "default"}>
+                      <Badge variant={(displayBalance ?? 0) < 0 ? "destructive" : "default"} className="text-xs">
                         {(displayBalance ?? 0) < 0 ? "Payable" : (displayBalance ?? 0) > 0 ? "Receivable" : 'Clear'}
                       </Badge>
-                      <p className="text-sm font-medium mt-1">RS. {Math.abs(displayBalance ?? 0)}</p>
+                      <p className="text-xs md:text-sm font-medium mt-0.5">RS. {Math.abs(displayBalance ?? 0)}</p>
                     </>
                   )}
                 </div>
@@ -675,21 +665,21 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="mt-2"
+                className="mt-1.5 h-7 text-xs"
                 onClick={() => {
                   setSelectedCustomer(null);
                   setSelectedCustomerBalance(null);
                 }}
               >
-                Change Customer
+                Change
               </Button>
             </div>
           )}
 
           {/* Order Details */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="bottles">Bottle Quantity *</Label>
+          <div className="grid gap-3 md:gap-4 md:grid-cols-2">
+            <div className="space-y-1.5 md:space-y-2">
+              <Label htmlFor="bottles" className="text-sm md:text-base">Bottle Quantity *</Label>
               <Input
                 id="bottles"
                 type="number"
@@ -698,11 +688,13 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                 value={bottles}
                 onChange={(e) => setBottles(e.target.value)}
                 required
+                className="h-11 md:h-10 text-base md:text-sm"
+                style={{ fontSize: '16px' }}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="price">Price per Bottle (RS. ) *</Label>
+            <div className="space-y-1.5 md:space-y-2">
+              <Label htmlFor="price" className="text-sm md:text-base">Price per Bottle (RS.) *</Label>
               <Input
                 id="price"
                 type="number"
@@ -711,6 +703,8 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                 value={pricePerBottle}
                 onChange={(e) => setPricePerBottle(e.target.value)}
                 required
+                className="h-11 md:h-10 text-base md:text-sm"
+                style={{ fontSize: '16px' }}
               />
             </div>
           </div>
@@ -782,10 +776,10 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
 
           {/* Rider Assignment - Only for Delivery Orders */}
           {orderType === 'delivery' && (
-            <div className="space-y-2">
-              <Label htmlFor="rider">Assign Rider (required for delivery)</Label>
+            <div className="space-y-1.5 md:space-y-2">
+              <Label htmlFor="rider" className="text-sm md:text-base">Assign Rider (required for delivery)</Label>
               <Select value={selectedRider} onValueChange={setSelectedRider} disabled={isAmend && !!activeOrder?.riderId}>
-                <SelectTrigger id="rider">
+                <SelectTrigger id="rider" className="h-11 md:h-10 text-base md:text-sm" style={{ fontSize: '16px' }}>
                   <SelectValue placeholder={loadingRiders ? 'Loading riders...' : (isAmend && activeOrder?.rider?.name ? activeOrder.rider.name : 'Select a rider')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -806,9 +800,9 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
 
           {/* Walk-in Payment Section */}
           {orderType === 'walkin' && selectedCustomer && bottles && pricePerBottle && (
-            <div className="space-y-4 p-4 rounded-lg border">
+            <div className="space-y-3 md:space-y-4 p-3 md:p-4 rounded-lg border">
               <div className="flex items-center justify-between">
-                <h3 className="font-medium text-blue-900">Payment Information</h3>
+                <h3 className="font-medium text-blue-900 text-sm md:text-base">Payment Information</h3>
                 {isUnknownWalkInCustomer && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -821,9 +815,9 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="paymentAmount">Payment Amount</Label>
+              <div className="grid grid-cols-2 gap-3 md:gap-4">
+                <div className="space-y-1.5 md:space-y-2">
+                  <Label htmlFor="paymentAmount" className="text-sm md:text-base">Payment Amount</Label>
                   <Input
                     id="paymentAmount"
                     type="number"
@@ -833,7 +827,8 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                     min="0"
                     disabled={isUnknownWalkInCustomer}
                     readOnly={isUnknownWalkInCustomer}
-                    className={isUnknownWalkInCustomer ? 'bg-muted cursor-not-allowed' : ''}
+                    className={`h-11 md:h-10 text-base md:text-sm ${isUnknownWalkInCustomer ? 'bg-muted cursor-not-allowed' : ''}`}
+                    style={{ fontSize: '16px' }}
                   />
                   {isUnknownWalkInCustomer && (
                     <p className="text-xs text-muted-foreground italic">
@@ -841,10 +836,10 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                     </p>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="paymentMethod">Payment Method</Label>
+                <div className="space-y-1.5 md:space-y-2">
+                  <Label htmlFor="paymentMethod" className="text-sm md:text-base">Payment Method</Label>
                   <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-11 md:h-10 text-base md:text-sm" style={{ fontSize: '16px' }}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -861,14 +856,14 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
               </div>
 
               {isUnknownWalkInCustomer && (
-                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <Info className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                  <p className="text-sm text-blue-700 flex-1">
+                <div className="flex items-start gap-2 p-2.5 md:p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs md:text-sm text-blue-700 flex-1">
                     This is the generic walk-in customer. Want to customize payment details? Add them as a customer to your database.
                   </p>
                   <AddCustomerDialog 
                     trigger={
-                      <Button type="button" variant="outline" size="sm" className="flex-shrink-0">
+                      <Button type="button" variant="outline" size="sm" className="flex-shrink-0 text-xs h-7 md:h-9">
                         Add as Customer
                       </Button>
                     }
@@ -876,54 +871,30 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="paymentNotes">Payment Notes (Optional)</Label>
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="paymentNotes" className="text-sm md:text-base">Payment Notes (Optional)</Label>
                 <Input
                   id="paymentNotes"
                   placeholder="Add any notes about this payment..."
                   value={paymentNotes}
                   onChange={(e) => setPaymentNotes(e.target.value)}
+                  className="h-11 md:h-10 text-base md:text-sm"
+                  style={{ fontSize: '16px' }}
                 />
               </div>
             </div>
           )}
-          {/* Priority */}
-          <div className="space-y-2">
-            <Label htmlFor="priority">Priority</Label>
-            <Select value={priority} onValueChange={setPriority}>
-              <SelectTrigger id="priority">
-                <SelectValue placeholder="Select priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes (Optional)</Label>
-            <Textarea
-              id="notes"
-              placeholder="Add delivery instructions or notes..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-            />
-          </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 justify-end">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isCreating}>
+          <div className="flex gap-2 md:gap-3 justify-end pt-2">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isCreating} className="h-11 md:h-10 text-sm md:text-base">
               Cancel
             </Button>
-            <Button type="submit" disabled={isCreating}>
+            <Button type="submit" disabled={isCreating} className="h-11 md:h-10 text-sm md:text-base">
               {isCreating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isAmend ? 'Updating Order...' : 'Creating Order...'}
+                  {isAmend ? 'Updating...' : 'Creating...'}
                 </>
               ) : (
                 isAmend ? 'Update Order' : "Create Order"
@@ -976,7 +947,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                 </div>
                 <div>
                   <span className="text-muted-foreground">Priority:</span>
-                  <p className="font-medium capitalize">{priority}</p>
+                  <p className="font-medium capitalize">Medium</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Bottles:</span>
@@ -1015,13 +986,6 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                 </div>
               )}
 
-              {/* Notes */}
-              {notes && (
-                <div className="mt-3 pt-3 border-t">
-                  <span className="text-muted-foreground text-sm">Notes:</span>
-                  <p className="font-medium text-sm mt-1">{notes}</p>
-                </div>
-              )}
             </div>
 
             {/* Total Summary */}
