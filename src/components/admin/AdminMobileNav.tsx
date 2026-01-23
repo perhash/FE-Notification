@@ -124,39 +124,51 @@ export function AdminMobileNav() {
                 </DrawerDescription>
               </DrawerHeader>
               <div className="grid grid-cols-2 gap-3 p-4 pb-6">
-                {allMenuItems.map((item) => (
-                  <DrawerClose key={item.title} asChild>
-                    <NavLink
-                      to={item.url}
-                      className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 hover:bg-cyan-50 hover:border-cyan-300 transition-all touch-manipulation"
-                      style={{ touchAction: 'manipulation' }}
+                {allMenuItems.map((item) => {
+                  // Check if route is active
+                  const isActive = location.pathname === item.url || 
+                    (item.url === '/admin' && location.pathname === '/admin') ||
+                    (item.url !== '/admin' && location.pathname.startsWith(item.url + '/'));
+                  
+                  return (
+                    <button
+                      key={item.title}
                       onClick={(e) => {
-                        // Check if route is active (exact match or starts with for nested routes)
-                        const isActive = location.pathname === item.url || 
-                          (item.url === '/admin' && location.pathname === '/admin') ||
-                          (item.url !== '/admin' && location.pathname.startsWith(item.url + '/'));
+                        e.preventDefault();
+                        e.stopPropagation();
                         
+                        // If already on this route, just close drawer
                         if (isActive) {
-                          e.preventDefault();
-                          e.stopPropagation();
                           setIsMenuOpen(false);
                           return;
                         }
                         
-                        // Reset scroll position before navigation
-                        e.stopPropagation();
+                        // Reset scroll position
                         window.scrollTo({ top: 0, behavior: 'instant' });
+                        
+                        // Close drawer first
+                        setIsMenuOpen(false);
+                        
+                        // Navigate after a small delay to ensure drawer closes
+                        setTimeout(() => {
+                          navigate(item.url);
+                        }, 100);
                       }}
                       onTouchStart={(e) => {
-                        // Prevent touch event issues
                         e.stopPropagation();
                       }}
+                      className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all touch-manipulation ${
+                        isActive 
+                          ? 'bg-cyan-50 border-cyan-300 text-cyan-700' 
+                          : 'border-gray-200 hover:bg-cyan-50 hover:border-cyan-300'
+                      }`}
+                      style={{ touchAction: 'manipulation' }}
                     >
                       <item.icon className="h-6 w-6 text-gray-600" />
                       <span className="text-sm font-medium text-gray-700">{item.title}</span>
-                    </NavLink>
-                  </DrawerClose>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
             </DrawerContent>
           </Drawer>
