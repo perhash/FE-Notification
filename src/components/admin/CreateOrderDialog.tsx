@@ -215,7 +215,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
       } finally {
         setLoadingCustomers(false);
       }
-    }, 300);
+    }, 5000);
     return () => clearTimeout(handler);
   }, [searchQuery]);
 

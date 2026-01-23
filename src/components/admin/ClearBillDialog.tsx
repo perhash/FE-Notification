@@ -32,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Loader2, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { apiService } from "@/services/api";
+import { indexedDBService } from "@/services/indexedDB";
 
 interface ClearBillDialogProps {
   trigger?: React.ReactNode;
@@ -50,7 +51,7 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
   const [activeOrderMap, setActiveOrderMap] = useState<Record<string, boolean>>({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
-  // Debounced customer search
+  // Debounced customer search - IndexedDB first, then API fallback
   useEffect(() => {
     const handler = setTimeout(async () => {
       if (!searchQuery) {
@@ -59,18 +60,51 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
       }
       try {
         setLoadingCustomers(true);
-        const res = await apiService.searchCustomers(searchQuery);
-        if ((res as any).success) {
-          setCustomerResults((res as any).data);
-        } else {
-          setCustomerResults([]);
+        
+        // Initialize IndexedDB if needed
+        try {
+          await indexedDBService.init();
+        } catch (error) {
+          console.error('IndexedDB init error:', error);
         }
+
+        // Search IndexedDB first
+        let results: any[] = [];
+        try {
+          const indexedResults = await indexedDBService.searchCustomers(searchQuery);
+          results = indexedResults;
+        } catch (error) {
+          console.error('IndexedDB search error:', error);
+        }
+
+        // If no results in IndexedDB, fallback to API
+        if (results.length === 0) {
+          try {
+            const res = await apiService.searchCustomers(searchQuery);
+            if ((res as any).success) {
+              results = (res as any).data || [];
+              // Store API results in IndexedDB for future searches
+              if (results.length > 0) {
+                try {
+                  await indexedDBService.storeCustomers(results);
+                } catch (error) {
+                  console.error('Failed to store customers in IndexedDB:', error);
+                }
+              }
+            }
+          } catch (e) {
+            console.error('API search error:', e);
+          }
+        }
+
+        setCustomerResults(results);
       } catch (e) {
+        console.error('Customer search error:', e);
         setCustomerResults([]);
       } finally {
         setLoadingCustomers(false);
       }
-    }, 300);
+    }, 5000);
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
