@@ -571,8 +571,75 @@ const RiderOrderDetail = () => {
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Bottles</span>
-                <span className="font-semibold text-gray-900">{order?.numberOfBottles} bottles</span>
+                {isEditingQuantity ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={editedQuantity}
+                      onChange={(e) => setEditedQuantity(e.target.value)}
+                      min={1}
+                      className="w-20 h-8 text-center text-sm"
+                      disabled={isSaving}
+                    />
+                    <span className="text-sm text-gray-600">bottles</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-gray-900">{order?.numberOfBottles} bottles</span>
+                    {canEdit && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleEditQuantity}
+                        className="h-8 w-8 p-0 min-w-0"
+                      >
+                        <Edit2 className="h-4 w-4 text-blue-600" />
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
+              {isEditingQuantity && preview && (
+                <div className="bg-blue-50 rounded-lg p-3 space-y-1.5 text-xs border border-blue-200">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">New Current Amount:</span>
+                    <span className="font-semibold text-blue-700">RS. {preview.newCurrentOrderAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">New Total Amount:</span>
+                    <span className="font-bold text-blue-700">RS. {preview.newTotalAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      size="sm"
+                      onClick={handleSaveEdit}
+                      disabled={isSaving}
+                      className="flex-1 h-8 text-xs bg-blue-600 hover:bg-blue-700"
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-3 w-3 mr-1" />
+                          Save
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCancelEdit}
+                      disabled={isSaving}
+                      className="flex-1 h-8 text-xs"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
               <div className="flex justify-between items-center border-t pt-2 mt-2">
                 <span className="text-sm text-gray-600">Current Amount</span>
                 <span className="text-sm font-medium text-gray-700">
