@@ -21,8 +21,6 @@ import Riders from "./pages/admin/Riders";
 import RiderDetail from "./pages/admin/RiderDetail";
 import Orders from "./pages/admin/Orders";
 import OrderDetail from "./pages/admin/OrderDetail";
-import Payments from "./pages/admin/Payments";
-import Reports from "./pages/admin/Reports";
 import Notifications from "./pages/admin/Notifications";
 import Settings from "./pages/admin/Settings";
 import DailyClosings from "./pages/admin/DailyClosings";
@@ -74,8 +72,6 @@ const AppRoutes = () => {
           <Route path="riders/:id" element={<RiderDetail />} />
           <Route path="orders" element={<Orders />} />
           <Route path="orders/:id" element={<OrderDetail />} />
-          <Route path="payments" element={<Payments />} />
-          <Route path="reports" element={<Reports />} />
           <Route path="daily-closings" element={<DailyClosings />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="settings" element={<Settings />} />
@@ -111,6 +107,38 @@ const App = () => {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Lock orientation to portrait on mobile devices
+  useEffect(() => {
+    if (window.innerWidth <= 768) {
+      // Try to lock orientation (if supported)
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('portrait').catch((err) => {
+          // Orientation lock not supported or failed
+          console.log('Orientation lock not supported:', err);
+        });
+      }
+      
+      // Prevent landscape mode with CSS and show message
+      const handleOrientationChange = () => {
+        if (window.innerWidth > window.innerHeight) {
+          // Landscape mode detected
+          document.body.style.overflow = 'hidden';
+        } else {
+          // Portrait mode
+          document.body.style.overflow = '';
+        }
+      };
+      
+      window.addEventListener('orientationchange', handleOrientationChange);
+      window.addEventListener('resize', handleOrientationChange);
+      
+      return () => {
+        window.removeEventListener('orientationchange', handleOrientationChange);
+        window.removeEventListener('resize', handleOrientationChange);
+      };
+    }
   }, []);
 
   return (

@@ -126,3 +126,45 @@ All colors MUST be HSL.
     touch-action: manipulation;
   }
 }
+
+/* Mobile portrait lock - prevent landscape rotation */
+@media screen and (max-width: 768px) {
+  html, body {
+    /* Prevent zoom and rotation on mobile */
+    touch-action: pan-x pan-y;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Lock orientation to portrait on mobile */
+  @media screen and (orientation: landscape) {
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    body::after {
+      content: 'Please rotate your device to portrait mode';
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 1.2rem;
+      text-align: center;
+      z-index: 10000;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      border-radius: 10px;
+    }
+  }
+}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Home, Calendar, Grid3x3, Bell, LogOut, Users, TruckIcon, Settings, User } from "lucide-react";
+import { Home, Package, Calendar, Grid3x3, Bell, LogOut, Users, TruckIcon, Settings, User } from "lucide-react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { NotificationDrawer } from "@/components/NotificationDrawer";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,11 +30,12 @@ export function AdminMobileNav() {
     navigate('/login');
   };
 
-  // Filtered menu items - removed Orders, Payments, Reports
+  // Filtered menu items - removed Orders, Payments, Reports, added Daily Closing
   const allMenuItems = [
     { title: "Dashboard", url: "/admin", icon: Home },
     { title: "Customers", url: "/admin/customers", icon: Users },
     { title: "Riders", url: "/admin/riders", icon: TruckIcon },
+    { title: "Daily Closing", url: "/admin/daily-closings", icon: Calendar },
     { title: "Profile", url: "/admin/profile", icon: User },
     { title: "Settings", url: "/admin/settings", icon: Settings },
   ];
@@ -46,10 +47,12 @@ export function AdminMobileNav() {
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, url: string, isActive: boolean) => {
     if (isActive) {
       e.preventDefault();
+      e.stopPropagation();
       return;
     }
     
-    // Reset scroll position on navigation
+    // Reset scroll position before navigation
+    e.stopPropagation();
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
@@ -68,24 +71,30 @@ export function AdminMobileNav() {
               const isActive = location.pathname === '/admin';
               handleNavClick(e, '/admin', isActive);
             }}
+            onTouchStart={(e) => {
+              e.stopPropagation();
+            }}
           >
             <Home className="h-6 w-6" />
             <span className="text-xs font-medium">Dashboard</span>
           </NavLink>
           
-          {/* Daily Closing Button */}
+          {/* Orders Button */}
           <NavLink
-            to="/admin/daily-closings"
+            to="/admin/orders"
             className={({ isActive }) =>
               `${navItemClass(isActive)}`
             }
             onClick={(e) => {
-              const isActive = location.pathname === '/admin/daily-closings';
-              handleNavClick(e, '/admin/daily-closings', isActive);
+              const isActive = location.pathname === '/admin/orders' || location.pathname.startsWith('/admin/orders/');
+              handleNavClick(e, '/admin/orders', isActive);
+            }}
+            onTouchStart={(e) => {
+              e.stopPropagation();
             }}
           >
-            <Calendar className="h-6 w-6" />
-            <span className="text-xs font-medium">Daily Closing</span>
+            <Package className="h-6 w-6" />
+            <span className="text-xs font-medium">Orders</span>
           </NavLink>
 
           {/* Six-dot Menu */}
@@ -122,13 +131,25 @@ export function AdminMobileNav() {
                       className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 hover:bg-cyan-50 hover:border-cyan-300 transition-all touch-manipulation"
                       style={{ touchAction: 'manipulation' }}
                       onClick={(e) => {
-                        const isActive = location.pathname === item.url || (item.url === '/admin' && location.pathname === '/admin');
+                        // Check if route is active (exact match or starts with for nested routes)
+                        const isActive = location.pathname === item.url || 
+                          (item.url === '/admin' && location.pathname === '/admin') ||
+                          (item.url !== '/admin' && location.pathname.startsWith(item.url + '/'));
+                        
                         if (isActive) {
                           e.preventDefault();
+                          e.stopPropagation();
                           setIsMenuOpen(false);
                           return;
                         }
+                        
+                        // Reset scroll position before navigation
+                        e.stopPropagation();
                         window.scrollTo({ top: 0, behavior: 'instant' });
+                      }}
+                      onTouchStart={(e) => {
+                        // Prevent touch event issues
+                        e.stopPropagation();
                       }}
                     >
                       <item.icon className="h-6 w-6 text-gray-600" />

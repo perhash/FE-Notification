@@ -1,6 +1,6 @@
 import { 
-  Home, Users, TruckIcon, Package, DollarSign, 
-  BarChart3, Bell, Settings, Calendar
+  Home, Users, TruckIcon, Package, 
+  Bell, Settings, Calendar
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
@@ -21,9 +21,7 @@ const menuItems = [
   { title: "Customers", url: "/admin/customers", icon: Users },
   { title: "Riders", url: "/admin/riders", icon: TruckIcon },
   { title: "Orders", url: "/admin/orders", icon: Package },
-  { title: "Payments", url: "/admin/payments", icon: DollarSign },
   { title: "Daily Closings", url: "/admin/daily-closings", icon: Calendar },
-  { title: "Reports", url: "/admin/reports", icon: BarChart3 },
   { title: "Notifications", url: "/admin/notifications", icon: Bell },
   { title: "Settings", url: "/admin/settings", icon: Settings },
 ];
