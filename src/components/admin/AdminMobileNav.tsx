@@ -23,6 +23,7 @@ export function AdminMobileNav() {
   const { logout } = useAuth();
   const { unreadCount } = useNotifications();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -130,12 +131,14 @@ export function AdminMobileNav() {
                     (item.url === '/admin' && location.pathname === '/admin') ||
                     (item.url !== '/admin' && location.pathname.startsWith(item.url + '/'));
                   
-                  return (
-                    <button
-                      key={item.title}
-                      onClick={(e) => {
+                  const handleMenuClick = (e: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        
+                        // Prevent multiple clicks
+                        if (isNavigating) {
+                          return;
+                        }
                         
                         // If already on this route, just close drawer
                         if (isActive) {
@@ -143,26 +146,44 @@ export function AdminMobileNav() {
                           return;
                         }
                         
-                        // Reset scroll position
-                        window.scrollTo({ top: 0, behavior: 'instant' });
+                        setIsNavigating(true);
                         
-                        // Close drawer first
+                        // Close drawer immediately
                         setIsMenuOpen(false);
                         
-                        // Navigate after a small delay to ensure drawer closes
+                        // Reset scroll position immediately
+                        window.scrollTo({ top: 0, behavior: 'instant' });
+                        
+                        // Small delay to ensure drawer closes, then navigate
                         setTimeout(() => {
-                          navigate(item.url);
-                        }, 100);
-                      }}
-                      onTouchStart={(e) => {
+                          try {
+                            navigate(item.url, { replace: false });
+                          } catch (error) {
+                            console.error('Navigation error:', error);
+                            // Fallback to window.location if navigate fails
+                            window.location.href = item.url;
+                          } finally {
+                            setTimeout(() => setIsNavigating(false), 500);
+                          }
+                        }, 150);
+                      };
+                  
+                  return (
+                    <button
+                      key={item.title}
+                      type="button"
+                      onClick={handleMenuClick}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
+                        handleMenuClick(e as any);
                       }}
                       className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all touch-manipulation ${
                         isActive 
                           ? 'bg-cyan-50 border-cyan-300 text-cyan-700' 
                           : 'border-gray-200 hover:bg-cyan-50 hover:border-cyan-300'
                       }`}
-                      style={{ touchAction: 'manipulation' }}
+                      style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                     >
                       <item.icon className="h-6 w-6 text-gray-600" />
                       <span className="text-sm font-medium text-gray-700">{item.title}</span>

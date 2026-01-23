@@ -129,14 +129,7 @@ All colors MUST be HSL.
 
 /* Mobile portrait lock - prevent landscape rotation */
 @media screen and (max-width: 768px) {
-  html, body {
-    /* Prevent zoom and rotation on mobile */
-    touch-action: pan-x pan-y;
-    -webkit-user-select: none;
-    user-select: none;
-  }
-  
-  /* Lock orientation to portrait on mobile */
+  /* Lock orientation to portrait on mobile - show overlay in landscape */
   @media screen and (orientation: landscape) {
     body::before {
       content: '';
@@ -145,11 +138,9 @@ All colors MUST be HSL.
       left: 0;
       width: 100vw;
       height: 100vh;
-      background: rgba(0, 0, 0, 0.9);
-      z-index: 9999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 99999;
+      display: block;
     }
     
     body::after {
@@ -159,12 +150,23 @@ All colors MUST be HSL.
       left: 50%;
       transform: translate(-50%, -50%);
       color: white;
-      font-size: 1.2rem;
+      font-size: 1.5rem;
+      font-weight: bold;
       text-align: center;
-      z-index: 10000;
-      padding: 20px;
-      background: rgba(0, 0, 0, 0.8);
-      border-radius: 10px;
+      z-index: 100000;
+      padding: 30px 40px;
+      background: rgba(0, 0, 0, 0.9);
+      border-radius: 15px;
+      border: 2px solid white;
+      white-space: nowrap;
+    }
+    
+    body {
+      overflow: hidden !important;
+    }
+    
+    #root {
+      overflow: hidden !important;
     }
   }
 }

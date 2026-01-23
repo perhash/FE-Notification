@@ -111,32 +111,70 @@ const App = () => {
 
   // Lock orientation to portrait on mobile devices
   useEffect(() => {
-    if (window.innerWidth <= 768) {
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
       // Try to lock orientation (if supported)
-      if (screen.orientation && screen.orientation.lock) {
-        screen.orientation.lock('portrait').catch((err) => {
-          // Orientation lock not supported or failed
-          console.log('Orientation lock not supported:', err);
-        });
-      }
+      const lockOrientation = async () => {
+        try {
+          // Try Screen Orientation API
+          if (screen.orientation && screen.orientation.lock) {
+            await screen.orientation.lock('portrait');
+          }
+          // Try legacy API for older browsers
+          else if ((screen as any).lockOrientation) {
+            (screen as any).lockOrientation('portrait');
+          }
+          // Try webkit API
+          else if ((screen as any).webkitLockOrientation) {
+            (screen as any).webkitLockOrientation('portrait');
+          }
+          // Try moz API
+          else if ((screen as any).mozLockOrientation) {
+            (screen as any).mozLockOrientation('portrait');
+          }
+          // Try ms API
+          else if ((screen as any).msLockOrientation) {
+            (screen as any).msLockOrientation('portrait');
+          }
+        } catch (err) {
+          console.log('Orientation lock not supported or failed:', err);
+        }
+      };
       
-      // Prevent landscape mode with CSS and show message
+      // Lock on mount
+      lockOrientation();
+      
+      // Lock again on orientation change
       const handleOrientationChange = () => {
+        lockOrientation();
+        
+        // Force portrait layout
         if (window.innerWidth > window.innerHeight) {
-          // Landscape mode detected
-          document.body.style.overflow = 'hidden';
+          // Landscape detected - show message via CSS
+          document.documentElement.classList.add('landscape-warning');
         } else {
-          // Portrait mode
-          document.body.style.overflow = '';
+          document.documentElement.classList.remove('landscape-warning');
+        }
+      };
+      
+      // Lock on resize as well
+      const handleResize = () => {
+        if (window.innerWidth <= 768) {
+          lockOrientation();
+          handleOrientationChange();
         }
       };
       
       window.addEventListener('orientationchange', handleOrientationChange);
-      window.addEventListener('resize', handleOrientationChange);
+      window.addEventListener('resize', handleResize);
+      
+      // Initial check
+      handleOrientationChange();
       
       return () => {
         window.removeEventListener('orientationchange', handleOrientationChange);
-        window.removeEventListener('resize', handleOrientationChange);
+        window.removeEventListener('resize', handleResize);
       };
     }
   }, []);
