@@ -42,10 +42,12 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [selectedCustomerBalance, setSelectedCustomerBalance] = useState<number | null>(null);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [paymentNotes, setPaymentNotes] = useState("");
   const [loadingCustomers, setLoadingCustomers] = useState(false);
+  const [loadingBalance, setLoadingBalance] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [customerResults, setCustomerResults] = useState<any[]>([]);
   const [activeOrderMap, setActiveOrderMap] = useState<Record<string, boolean>>({});
@@ -143,6 +145,41 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
     }
   }, [selectedCustomer]);
 
+  // When customer is selected, fetch updated balance from main DB
+  useEffect(() => {
+    const loadCustomerBalance = async () => {
+      if (!selectedCustomer) {
+        setSelectedCustomerBalance(null);
+        return;
+      }
+      
+      try {
+        setLoadingBalance(true);
+        
+        // Fetch updated customer data with balance from API
+        const res = await apiService.getCustomerById(selectedCustomer.id) as any;
+        if (res?.success) {
+          const customerData = res.data;
+          
+          // Set updated balance
+          const balance = customerData.currentBalance || 0;
+          setSelectedCustomerBalance(balance);
+          
+          // Auto-set payment amount to the absolute value of balance
+          setPaymentAmount(Math.abs(balance).toString());
+        } else {
+          setSelectedCustomerBalance(null);
+        }
+      } catch (error) {
+        console.error('Failed to load customer balance:', error);
+        setSelectedCustomerBalance(null);
+      } finally {
+        setLoadingBalance(false);
+      }
+    };
+    loadCustomerBalance();
+  }, [selectedCustomer]);
+
   // For each searched customer, detect if they have an in-progress order and mark them to exclude from list
   useEffect(() => {
     let cancelled = false;
@@ -205,6 +242,7 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
         
         // Reset form
         setSelectedCustomer(null);
+        setSelectedCustomerBalance(null);
         setSearchQuery("");
         setPaymentAmount("");
         setPaymentMethod("CASH");
@@ -223,7 +261,8 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
     }
   };
 
-  const customerBalance = selectedCustomer?.currentBalance ?? 0;
+  // Use fetched balance if available, otherwise default to 0
+  const customerBalance = selectedCustomerBalance !== null ? selectedCustomerBalance : 0;
   const isReceivable = customerBalance > 0;
   const isPayable = customerBalance < 0;
   const hasBill = customerBalance !== 0;
@@ -268,9 +307,7 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
                 {loadingCustomers ? (
                   <p className="p-3 text-sm text-muted-foreground">Searching...</p>
                 ) : customerResults.length > 0 ? (
-                  customerResults
-                    .filter(customer => customer.currentBalance !== 0)
-                    .map((customer) => {
+                  customerResults.map((customer) => {
                       const inProgress = !!activeOrderMap[customer.id];
                       return (
                         <div
@@ -279,7 +316,6 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
                             if (inProgress) return; // keep visible but not selectable
                             setSelectedCustomer(customer);
                             setSearchQuery("");
-                            setPaymentAmount(Math.abs(customer.currentBalance).toString());
                           }}
                           className={`p-3 border-b last:border-b-0 ${inProgress ? 'opacity-60 cursor-not-allowed' : 'hover:bg-muted cursor-pointer'}`}
                         >
@@ -296,16 +332,10 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
                                 </p>
                               )}
                             </div>
-                            <div className="text-right ml-4 space-y-1">
+                            <div className="text-right ml-4">
                               {inProgress && (
                                 <Badge className="bg-amber-100 text-amber-700">Order in progress</Badge>
                               )}
-                              <Badge variant={customer.currentBalance < 0 ? "destructive" : "default"}>
-                                {customer.currentBalance < 0 ? "Payable" : "Receivable"}
-                              </Badge>
-                              <p className="text-sm font-semibold">
-                                RS. {Math.abs(customer.currentBalance)}
-                              </p>
                             </div>
                           </div>
                         </div>
@@ -327,10 +357,19 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
                   <p className="text-sm text-muted-foreground">{selectedCustomer.phone}</p>
                 </div>
                 <div className="text-right">
-                  <Badge variant={customerBalance < 0 ? "destructive" : "default"}>
-                    {isReceivable ? "Receivable" : isPayable ? "Payable" : "Clear"}
-                  </Badge>
-                  <p className="text-lg font-bold mt-1">RS. {Math.abs(customerBalance)}</p>
+                  {loadingBalance ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-sm text-muted-foreground">Loading balance...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Badge variant={customerBalance < 0 ? "destructive" : "default"}>
+                        {isReceivable ? "Receivable" : isPayable ? "Payable" : "Clear"}
+                      </Badge>
+                      <p className="text-lg font-bold mt-1">RS. {Math.abs(customerBalance)}</p>
+                    </>
+                  )}
                 </div>
               </div>
               <Button
@@ -340,6 +379,7 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
                 className="mt-2"
                 onClick={() => {
                   setSelectedCustomer(null);
+                  setSelectedCustomerBalance(null);
                   setPaymentAmount("");
                 }}
               >
