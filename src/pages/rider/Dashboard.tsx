@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, MapPin, Phone, CheckCircle, Clock, DollarSign, Receipt, PlusCircle } from "lucide-react";
+import { Package, MapPin, Phone, CheckCircle, Clock, DollarSign, Receipt, PlusCircle, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiService } from "@/services/api";
@@ -186,6 +186,18 @@ const RiderDashboard = () => {
               <h1 className="text-2xl font-bold text-white">Welcome {riderName}</h1>
               <p className="text-sm text-white/90 mt-1">You have {assignedDeliveries.length} pending deliveries</p>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setLoading(true);
+                fetchRiderData();
+              }}
+              disabled={loading}
+              className="h-9 w-9 p-0 bg-white/10 border-white/30 text-white hover:bg-white/20"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
           </div>
 
           {/* Metrics - 3 Rounded Boxes */}
@@ -400,11 +412,23 @@ const RiderDashboard = () => {
             <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-xl">
               <Droplet className="h-12 w-12 text-cyan-600" fill="currentColor" />
             </div>
-            <div>
+            <div className="flex-1">
               <h1 className="text-4xl font-bold text-white">Welcome {riderName}</h1>
               <p className="text-xl text-white/90 mt-2">You have {assignedDeliveries.length} pending deliveries</p>
             </div>
-            <div className="flex justify-center pt-4">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setLoading(true);
+                  fetchRiderData();
+                }}
+                disabled={loading}
+                className="h-10 w-10 p-0 bg-white/10 border-white/30 text-white hover:bg-white/20"
+              >
+                <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
               <Link to="/rider/history">
                 <Button className="bg-transparent backdrop-blur-sm text-white border-white rounded-full px-4 py-2 hover:bg-white/20" variant="outline" size="lg">
                   View Order History

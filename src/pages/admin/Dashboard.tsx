@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, TruckIcon, Package, DollarSign, Plus, Receipt, Calendar, Wallet, CheckCircle, AlertTriangle, ArrowRight, Wallet as WalletIcon, ChevronDown, ChevronUp, Search } from "lucide-react";
+import { Users, TruckIcon, Package, DollarSign, Plus, Receipt, Calendar, Wallet, CheckCircle, AlertTriangle, ArrowRight, Wallet as WalletIcon, ChevronDown, ChevronUp, Search, RefreshCw } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { CreateOrderDialog } from "@/components/admin/CreateOrderDialog";
@@ -84,45 +84,45 @@ const AdminDashboard = () => {
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>('all');
   const channelRef = useRef<any>(null);
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        setLoadingSummary(true);
-        const [activitiesResponse, summaryResponse] = await Promise.all([
-          apiService.getRecentActivities(),
-          apiService.getDailyClosingSummary()
-        ]);
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setLoadingSummary(true);
+      const [activitiesResponse, summaryResponse] = await Promise.all([
+        apiService.getRecentActivities(),
+        apiService.getDailyClosingSummary()
+      ]);
 
-        if ((activitiesResponse as any).success) {
-          // Format activity times in PKT with relative time and add formatted deliveredAt
-          const activities = (activitiesResponse as any).data.map((activity: any) => ({
-            ...activity,
-            time: activity.time ? formatPktRelativeTime(activity.time) : 'Unknown time',
-            deliveredAtFormatted: activity.deliveredAt ? formatPktTime12Hour(activity.deliveredAt) : null
-          }));
-          setRecentActivities(activities);
-        }
-
-        if ((summaryResponse as any).success) {
-          const summaryData = (summaryResponse as any).data;
-          console.log('Daily Summary:', {
-            inProgressOrdersCount: summaryData.inProgressOrdersCount,
-            canClose: summaryData.canClose,
-            summaryData
-          });
-          setDailySummary(summaryData);
-        }
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        setRecentActivities([]);
-        setDailySummary(null);
-      } finally {
-        setLoading(false);
-        setLoadingSummary(false);
+      if ((activitiesResponse as any).success) {
+        // Format activity times in PKT with relative time and add formatted deliveredAt
+        const activities = (activitiesResponse as any).data.map((activity: any) => ({
+          ...activity,
+          time: activity.time ? formatPktRelativeTime(activity.time) : 'Unknown time',
+          deliveredAtFormatted: activity.deliveredAt ? formatPktTime12Hour(activity.deliveredAt) : null
+        }));
+        setRecentActivities(activities);
       }
-    };
 
+      if ((summaryResponse as any).success) {
+        const summaryData = (summaryResponse as any).data;
+        console.log('Daily Summary:', {
+          inProgressOrdersCount: summaryData.inProgressOrdersCount,
+          canClose: summaryData.canClose,
+          summaryData
+        });
+        setDailySummary(summaryData);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      setRecentActivities([]);
+      setDailySummary(null);
+    } finally {
+      setLoading(false);
+      setLoadingSummary(false);
+    }
+  };
+
+  useEffect(() => {
     fetchDashboardData();
 
     // Listen for custom refresh event (e.g., from ClearBillDialog)
@@ -544,7 +544,21 @@ const AdminDashboard = () => {
 
           {/* Today's Orders - Tabular Form */}
           <div className="mt-4">
-            <h2 className="text-sm font-bold mb-3 text-gray-900">Today's Orders</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-gray-900">Today's Orders</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setLoading(true);
+                  fetchDashboardData();
+                }}
+                disabled={loading}
+                className="h-8 w-8 p-0"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
             
             {/* Search and Filter Bar */}
             <div className="flex flex-col gap-2 mb-3">
@@ -970,9 +984,23 @@ const AdminDashboard = () => {
 
           {/* Today's Orders */}
           <div>
-            <div className="flex items-center gap-2 mb-6">
-              <Package className="h-6 w-6 text-cyan-600" />
-              <h2 className="text-2xl font-bold text-gray-900">Today's Orders</h2>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Package className="h-6 w-6 text-cyan-600" />
+                <h2 className="text-2xl font-bold text-gray-900">Today's Orders</h2>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setLoading(true);
+                  fetchDashboardData();
+                }}
+                disabled={loading}
+                className="h-9 w-9 p-0"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
             </div>
 
             {/* Search and Filter Bar */}
