@@ -175,7 +175,7 @@ const RiderDashboard = () => {
       {/* Mobile Layout */}
       <div className="md:hidden">
         {/* Top Section - Blue Gradient Header */}
-        <div className="bg-gradient-to-br from-cyan-900 via-cyan-500 to-cyan-900 p-6 pb-8 space-y-6">
+        <div className="bg-gradient-to-br from-cyan-900 via-cyan-500 to-cyan-900 p-6 pb-10 space-y-6">
           {/* Welcome Section */}
           <div className="flex items-center gap-4">
             {/* Profile Circle */}
@@ -231,7 +231,7 @@ const RiderDashboard = () => {
           </div>
 
           {/* Actions - Mobile (Order history + optional create enroute) */}
-          <div className="mt-6 mb-2 flex items-center justify-between">
+          <div className="mt-6 mb-4 flex items-center justify-between">
             <Link to="/rider/history">
               <p className="text-white underline text-sm font-medium">
                 Order history
@@ -251,7 +251,7 @@ const RiderDashboard = () => {
 
         {/* Bottom Section - White Background with Tabs */}
         {/* Bottom Section - White Glassy Tabs Area */}
-        <div className="bg-white rounded-t-3xl -mt-10 p-6 min-h-[calc(100vh-300px)] overflow-y-auto shadow-2xl">
+        <div className="bg-white rounded-t-3xl -mt-12 p-6 min-h-[calc(100vh-300px)] overflow-y-auto shadow-2xl">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             {/* Toggle Bar */}
             <div className="flex rounded-full border bg-black/20 backdrop-blur-sm shadow-black/70 shadow-inner-sm   p-1 mb-6 shadow-inner">
@@ -476,7 +476,7 @@ const RiderDashboard = () => {
           </div>
 
           {/* Actions - Desktop (Order history + optional create enroute) */}
-          <div className="mt-6 mb-2 flex items-center justify-between">
+          <div className="mt-6 mb-4 flex items-center justify-between">
             <Link to="/rider/history">
               <Button className="bg-transparent backdrop-blur-sm text-white border-white rounded-full px-4 py-2 hover:bg-white/20" variant="outline" size="sm">
                 View Order History
