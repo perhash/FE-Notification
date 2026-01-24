@@ -65,6 +65,7 @@ const DailyClosings = () => {
 
   const [closings, setClosings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDailyClosings();
@@ -73,15 +74,20 @@ const DailyClosings = () => {
   const fetchDailyClosings = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await apiService.getAllDailyClosings() as any;
       if (response.success) {
-        setClosings(response.data);
+        setClosings(response.data ?? []);
       } else {
-        toast.error(response.message || "Failed to fetch daily closings");
+        const msg = response.message || "Failed to fetch daily closings";
+        setError(msg);
+        toast.error(msg);
       }
-    } catch (error: any) {
-      console.error("Error fetching daily closings:", error);
-      toast.error(error?.message || "Failed to fetch daily closings");
+    } catch (err: any) {
+      console.error("Error fetching daily closings:", err);
+      const msg = err?.message || "Failed to fetch daily closings";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -121,6 +127,15 @@ const DailyClosings = () => {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="ml-2 text-muted-foreground">Loading daily closings...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <AlertCircle className="h-16 w-16 mx-auto text-amber-500 mb-4" />
+            <p className="text-gray-700 font-medium mb-2">Could not load daily closings</p>
+            <p className="text-gray-500 text-sm mb-4 max-w-md mx-auto">{error}</p>
+            <Button onClick={fetchDailyClosings} variant="outline">
+              Try again
+            </Button>
           </div>
         ) : closings.length === 0 ? (
           <div className="text-center py-12">
