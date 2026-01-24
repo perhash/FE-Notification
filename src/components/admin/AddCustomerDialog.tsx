@@ -20,7 +20,7 @@ interface AddCustomerDialogProps {
   onSuccess?: () => void;
 }
 
-export function AddCustomerDialog({ trigger, onSuccess }: AddCustomerDialogProps) {
+export function AddCustomerDialog({ trigger }: AddCustomerDialogProps) {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",

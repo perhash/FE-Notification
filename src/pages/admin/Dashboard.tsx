@@ -544,36 +544,7 @@ const AdminDashboard = () => {
 
           {/* Today's Orders - Tabular Form */}
           <div className="mt-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-bold text-gray-900">Today's Orders</h2>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  try {
-                    setLoading(true);
-                    const activitiesResponse = await apiService.getRecentActivities();
-                    if ((activitiesResponse as any).success) {
-                      const activities = (activitiesResponse as any).data.map((activity: any) => ({
-                        ...activity,
-                        time: activity.time ? formatPktRelativeTime(activity.time) : 'Unknown time',
-                        deliveredAtFormatted: activity.deliveredAt ? formatPktTime12Hour(activity.deliveredAt) : null
-                      }));
-                      setRecentActivities(activities);
-                    }
-                  } catch (error) {
-                    console.error('Error refreshing orders:', error);
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                disabled={loading}
-                className="h-8 text-xs"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-            </div>
+            <h2 className="text-sm font-bold mb-3 text-gray-900">Today's Orders</h2>
             
             {/* Search and Filter Bar */}
             <div className="flex flex-col gap-2 mb-3">
@@ -999,37 +970,9 @@ const AdminDashboard = () => {
 
           {/* Today's Orders */}
           <div>
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <Package className="h-6 w-6 text-cyan-600" />
-                <h2 className="text-2xl font-bold text-gray-900">Today's Orders</h2>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  try {
-                    setLoading(true);
-                    const activitiesResponse = await apiService.getRecentActivities();
-                    if ((activitiesResponse as any).success) {
-                      const activities = (activitiesResponse as any).data.map((activity: any) => ({
-                        ...activity,
-                        time: activity.time ? formatPktRelativeTime(activity.time) : 'Unknown time',
-                        deliveredAtFormatted: activity.deliveredAt ? formatPktTime12Hour(activity.deliveredAt) : null
-                      }));
-                      setRecentActivities(activities);
-                    }
-                  } catch (error) {
-                    console.error('Error refreshing orders:', error);
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                disabled={loading}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
+            <div className="flex items-center gap-2 mb-6">
+              <Package className="h-6 w-6 text-cyan-600" />
+              <h2 className="text-2xl font-bold text-gray-900">Today's Orders</h2>
             </div>
 
             {/* Search and Filter Bar */}

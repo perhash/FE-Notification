@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, MapPin, Phone, CheckCircle, Clock, DollarSign, Receipt, PlusCircle, RefreshCw } from "lucide-react";
+import { Package, MapPin, Phone, CheckCircle, Clock, DollarSign, Receipt, PlusCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiService } from "@/services/api";
@@ -241,20 +241,6 @@ const RiderDashboard = () => {
         {/* Bottom Section - White Glassy Tabs Area */}
         <div className="bg-white rounded-t-3xl -mt-10 p-6 min-h-[calc(100vh-300px)] overflow-y-auto shadow-2xl">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            {/* Refresh Button - Mobile */}
-            <div className="flex justify-end mb-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={fetchRiderData}
-                disabled={loading}
-                className="h-8 text-xs"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-            </div>
-            
             {/* Toggle Bar */}
             <div className="flex rounded-full border bg-black/20 backdrop-blur-sm shadow-black/70 shadow-inner-sm   p-1 mb-6 shadow-inner">
               <button
@@ -474,19 +460,6 @@ const RiderDashboard = () => {
         {/* Bottom Section - White Background */}
         <div className="bg-white rounded-3xl shadow-2xl p-8 border border-cyan-100">
           <div className="flex flex-col gap-4 mb-8">
-            {/* Refresh Button - Desktop */}
-            <div className="flex justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={fetchRiderData}
-                disabled={loading}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Refresh Orders
-              </Button>
-            </div>
-            
             <div className="flex rounded-full border-2 border-cyan-100 bg-cyan-50 p-1 w-fit mx-auto">
               <button
                 onClick={() => setActiveTab("assigned")}
