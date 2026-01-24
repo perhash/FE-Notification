@@ -262,7 +262,7 @@ const EnrouteOrderPage = () => {
     <div className="min-h-screen pb-24 md:pb-6">
       {/* Mobile Layout */}
       <div className="md:hidden">
-        <div className="bg-gradient-to-br from-cyan-900 via-cyan-500 to-cyan-900 p-6 pb-8 space-y-4">
+        <div className="bg-gradient-to-br from-cyan-900 via-cyan-500 to-cyan-900 p-6 space-y-4">
           <div className="flex items-center gap-4">
             <Link to="/rider">
               <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
@@ -276,7 +276,7 @@ const EnrouteOrderPage = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-t-3xl -mt-5 p-6 pb-8 space-y-4">
+        <div className="bg-white rounded-t-3xl -mt-5 p-6 space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Customer Search */}
             <div className="space-y-2">
