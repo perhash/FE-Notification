@@ -245,16 +245,24 @@ const DailyClosings = () => {
                   )}
 
                   {/* Clear Bill Amount */}
-                  {closing.clearBillAmount > 0 && (
-                    <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200 mb-4">
+                  {closing.clearBillAmount !== 0 && (
+                    <div className={`rounded-lg p-3 border mb-4 ${
+                      closing.clearBillAmount >= 0 
+                        ? 'bg-indigo-50 border-indigo-200' 
+                        : 'bg-red-50 border-red-200'
+                    }`}>
                       <div className="flex items-center gap-2 mb-2">
-                        <Receipt className="h-4 w-4 text-indigo-700" />
-                        <p className="text-xs font-semibold text-indigo-900">Clear Bill Sales</p>
+                        <Receipt className={`h-4 w-4 ${closing.clearBillAmount >= 0 ? 'text-indigo-700' : 'text-red-700'}`} />
+                        <p className={`text-xs font-semibold ${closing.clearBillAmount >= 0 ? 'text-indigo-900' : 'text-red-900'}`}>
+                          {closing.clearBillAmount >= 0 ? 'Clear Bill Sales' : 'Clear Bill (Payable)'}
+                        </p>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm font-semibold text-indigo-900">Total Clear Bill</span>
-                        <span className="text-xl font-bold text-indigo-700">
-                          {formatCurrency(closing.clearBillAmount)}
+                        <span className={`text-sm font-semibold ${closing.clearBillAmount >= 0 ? 'text-indigo-900' : 'text-red-900'}`}>
+                          Total Clear Bill
+                        </span>
+                        <span className={`text-xl font-bold ${closing.clearBillAmount >= 0 ? 'text-indigo-700' : 'text-red-700'}`}>
+                          {formatCurrency(Math.abs(closing.clearBillAmount))}
                         </span>
                       </div>
                     </div>
