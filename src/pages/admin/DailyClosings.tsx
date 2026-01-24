@@ -1,10 +1,63 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, DollarSign, Users, Package, AlertCircle, Loader2, TruckIcon, Wallet, Receipt } from "lucide-react";
+import { Calendar, DollarSign, Users, Package, AlertCircle, Loader2, TruckIcon, Wallet, Receipt, ChevronDown, ChevronUp } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { apiService } from "@/services/api";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+
+// Component for collapsible rider card in Daily Closings
+const RiderCollectionCard = ({ rider, index }: { rider: any; index: number }) => {
+  const [riderOpen, setRiderOpen] = useState(false);
+  const formatCurrency = (amount: number) => {
+    return `RS. ${amount.toFixed(2)}`;
+  };
+
+  return (
+    <Collapsible open={riderOpen} onOpenChange={setRiderOpen}>
+      <CollapsibleTrigger asChild>
+        <div className="flex justify-between items-center cursor-pointer hover:bg-purple-100 rounded p-1.5 transition-colors">
+          <span className="text-xs text-gray-700 font-medium">{rider.riderName}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-purple-900">
+              {formatCurrency(rider.amount)}
+            </span>
+            <span className="text-xs text-gray-500">
+              ({rider.ordersCount} orders)
+            </span>
+            {riderOpen ? (
+              <ChevronUp className="h-3 w-3 text-purple-700" />
+            ) : (
+              <ChevronDown className="h-3 w-3 text-purple-700" />
+            )}
+          </div>
+        </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        {rider.paymentMethods && rider.paymentMethods.length > 0 ? (
+          <div className="ml-4 mt-1 space-y-1 bg-purple-100 rounded p-2 border border-purple-200">
+            {rider.paymentMethods.map((pm: any, pmIdx: number) => (
+              <div key={pmIdx} className="flex justify-between items-center text-xs">
+                <span className="text-gray-700">
+                  {pm.method.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-purple-900 font-semibold">
+                    {formatCurrency(pm.amount)}
+                  </span>
+                  <span className="text-gray-500">
+                    ({pm.ordersCount} orders)
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+};
 
 const DailyClosings = () => {
   const { user } = useAuth();
@@ -169,17 +222,7 @@ const DailyClosings = () => {
                       </div>
                       <div className="space-y-2">
                         {closing.riderCollections.map((rc: any, idx: number) => (
-                          <div key={idx} className="flex justify-between items-center">
-                            <span className="text-xs text-gray-700">{rc.riderName}</span>
-                            <div className="text-right">
-                              <span className="text-sm font-semibold text-purple-900">
-                                {formatCurrency(rc.amount)}
-                              </span>
-                              <span className="text-xs text-gray-500 ml-2">
-                                ({rc.ordersCount} orders)
-                              </span>
-                            </div>
-                          </div>
+                          <RiderCollectionCard key={idx} rider={rc} index={idx} />
                         ))}
                       </div>
                     </div>
@@ -212,6 +255,22 @@ const DailyClosings = () => {
                         <span className="text-sm font-semibold text-indigo-900">Total Clear Bill</span>
                         <span className="text-xl font-bold text-indigo-700">
                           {formatCurrency(closing.clearBillAmount)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Enroute Order Amount */}
+                  {closing.enrouteAmount > 0 && (
+                    <div className="bg-green-50 rounded-lg p-3 border border-green-200 mb-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TruckIcon className="h-4 w-4 text-green-700" />
+                        <p className="text-xs font-semibold text-green-900">Enroute Orders</p>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-semibold text-green-900">Total Enroute</span>
+                        <span className="text-xl font-bold text-green-700">
+                          {formatCurrency(closing.enrouteAmount)}
                         </span>
                       </div>
                     </div>

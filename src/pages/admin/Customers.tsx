@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiService } from "@/services/api";
+import { customerSyncService } from "@/services/customerSync";
 
 const Customers = () => {
   const navigate = useNavigate();
@@ -103,6 +104,34 @@ const Customers = () => {
     );
     setEditDialogOpen(false);
     setSelectedCustomer(null);
+  };
+
+  const handleCustomerAdded = async () => {
+    try {
+      // Refetch customers from API
+      setLoading(true);
+      const response = await apiService.getCustomers(statusFilter !== 'all' ? statusFilter : undefined);
+
+      if (response.success) {
+        setCustomers(response.data);
+      } else {
+        setError(response.message || 'Failed to fetch customers');
+      }
+
+      // Sync with IndexedDB
+      try {
+        await customerSyncService.syncCustomers();
+        console.log('IndexedDB synced successfully after adding customer');
+      } catch (syncError) {
+        console.error('Failed to sync IndexedDB after adding customer:', syncError);
+        // Don't show error to user, just log it
+      }
+    } catch (error) {
+      console.error('Error refreshing customers after add:', error);
+      setError('Failed to refresh customers. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleWhatsAppRedirect = (customer) => {
@@ -215,7 +244,7 @@ Shukriya`;
                 </SelectContent>
               </Select>
 
-              <AddCustomerDialog />
+              <AddCustomerDialog onSuccess={handleCustomerAdded} />
             </div>
 
             <div className="relative">
@@ -462,7 +491,7 @@ Shukriya`;
                   <div className=" flex flex-row justify-end items-center gap-2">
 
                     <div>
-                      <AddCustomerDialog />
+                      <AddCustomerDialog onSuccess={handleCustomerAdded} />
                     </div>
                   </div>
                 </div>
@@ -503,7 +532,7 @@ Shukriya`;
                     }
                   </p>
                   {(!searchQuery && statusFilter === 'all') && (
-                    <AddCustomerDialog />
+                    <AddCustomerDialog onSuccess={handleCustomerAdded} />
                   )}
                 </div>
               ) : (

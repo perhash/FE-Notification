@@ -17,9 +17,10 @@ import { apiService } from "@/services/api";
 
 interface AddCustomerDialogProps {
   trigger?: React.ReactNode;
+  onSuccess?: () => void;
 }
 
-export function AddCustomerDialog({ trigger }: AddCustomerDialogProps) {
+export function AddCustomerDialog({ trigger, onSuccess }: AddCustomerDialogProps) {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -127,8 +128,10 @@ export function AddCustomerDialog({ trigger }: AddCustomerDialogProps) {
         });
         setOpen(false);
         
-        // Refresh the page to show new customer
-        window.location.reload();
+        // Call onSuccess callback to refresh the customers list and sync IndexedDB
+        if (onSuccess) {
+          onSuccess();
+        }
       } else {
         // Handle specific error messages from backend
         if (response.error === 'DUPLICATE_ENTRY') {

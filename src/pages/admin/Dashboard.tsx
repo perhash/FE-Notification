@@ -19,6 +19,55 @@ import { supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+// Component for collapsible rider card
+const RiderCollectionCard = ({ rider, index }: { rider: any; index: number }) => {
+  const [riderOpen, setRiderOpen] = useState(false);
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-PK', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount);
+  };
+
+  return (
+    <Collapsible open={riderOpen} onOpenChange={setRiderOpen}>
+      <CollapsibleTrigger asChild>
+        <div className="bg-purple-400/60 backdrop-blur-sm rounded-xl p-2.5 border border-purple-300/40 ml-5 cursor-pointer active:scale-[0.98] transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-white">{rider.riderName || `Rider ${index + 1}`}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-white">RS. {formatCurrency(rider.amount || 0)}</span>
+              <span className="text-[10px] text-white/80">({rider.ordersCount || 0})</span>
+              {riderOpen ? (
+                <ChevronUp className="h-3 w-3 text-white/80" />
+              ) : (
+                <ChevronDown className="h-3 w-3 text-white/80" />
+              )}
+            </div>
+          </div>
+        </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        {rider.paymentMethods && rider.paymentMethods.length > 0 ? (
+          <div className="ml-5 mt-1.5 space-y-1 bg-purple-300/40 rounded-lg p-2 border border-purple-200/40">
+            {rider.paymentMethods.map((pm: any, pmIdx: number) => (
+              <div key={pmIdx} className="flex items-center justify-between text-[10px]">
+                <span className="text-white/90">
+                  {pm.method.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-white font-semibold">RS. {formatCurrency(pm.amount || 0)}</span>
+                  <span className="text-white/70">({pm.ordersCount || 0})</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+};
+
 const AdminDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -365,8 +414,8 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              {/* Collections Summary - Collapsible (Walk-in, Clear Bill, Rider Collections) */}
-              {(dailySummary.walkInAmount > 0 || dailySummary.clearBillAmount > 0 || (dailySummary.riderCollections && dailySummary.riderCollections.length > 0)) && (
+              {/* Collections Summary - Collapsible (Walk-in, Clear Bill, Enroute, Rider Collections) */}
+              {(dailySummary.walkInAmount > 0 || dailySummary.clearBillAmount > 0 || (dailySummary.enrouteAmount > 0) || (dailySummary.riderCollections && dailySummary.riderCollections.length > 0)) && (
                 <Collapsible open={collectionsOpen} onOpenChange={setCollectionsOpen}>
                   <CollapsibleTrigger asChild>
                     <div className="bg-gradient-to-r from-purple-500/80 to-indigo-500/80 backdrop-blur-sm rounded-2xl p-2.5 border border-purple-300/50 cursor-pointer active:scale-[0.98] transition-all mb-2.5">
@@ -379,6 +428,7 @@ const AdminDashboard = () => {
                               {[
                                 dailySummary.walkInAmount > 0 ? 'Walk-in' : null,
                                 dailySummary.clearBillAmount > 0 ? 'Clear Bill' : null,
+                                dailySummary.enrouteAmount > 0 ? 'Enroute' : null,
                                 dailySummary.riderCollections && dailySummary.riderCollections.length > 0 ? `${dailySummary.riderCollections.length} Rider${dailySummary.riderCollections.length > 1 ? 's' : ''}` : null
                               ].filter(Boolean).join(' • ')}
                             </p>
@@ -420,6 +470,19 @@ const AdminDashboard = () => {
                         </div>
                       )}
 
+                      {/* Enroute Order Amount */}
+                      {dailySummary.enrouteAmount > 0 && (
+                        <div className="bg-green-500/80 backdrop-blur-sm rounded-xl p-2.5 border border-green-300/40">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <TruckIcon className="h-3.5 w-3.5 text-white" />
+                              <span className="text-xs font-semibold text-white">Enroute Orders</span>
+                            </div>
+                            <span className="text-xs font-bold text-white">RS. {formatCurrency(dailySummary.enrouteAmount)}</span>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Rider Collections */}
                       {dailySummary.riderCollections && dailySummary.riderCollections.length > 0 && (
                         <div className="space-y-1.5">
@@ -428,15 +491,7 @@ const AdminDashboard = () => {
                             <span className="text-[10px] font-semibold text-white/90">Rider Collections</span>
                           </div>
                           {dailySummary.riderCollections.map((rc: any, idx: number) => (
-                            <div key={idx} className="bg-purple-400/60 backdrop-blur-sm rounded-xl p-2.5 border border-purple-300/40 ml-5">
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-semibold text-white">{rc.riderName || `Rider ${idx + 1}`}</span>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-bold text-white">RS. {formatCurrency(rc.amount || 0)}</span>
-                                  <span className="text-[10px] text-white/80">({rc.ordersCount || 0})</span>
-                                </div>
-                              </div>
-                            </div>
+                            <RiderCollectionCard key={idx} rider={rc} index={idx} />
                           ))}
                         </div>
                       )}
@@ -840,6 +895,23 @@ const AdminDashboard = () => {
                     <div className="flex flex-col">
                       <Receipt className="h-8 w-8 text-white/50 mb-3" />
                       <p className="text-sm text-white/50 mb-2">Clear Bill</p>
+                      <p className="text-3xl font-bold text-white/50">RS. 0</p>
+                    </div>
+                  </div>
+                )}
+                {dailySummary.enrouteAmount > 0 ? (
+                  <div className="bg-green-500/80 backdrop-blur-sm rounded-3xl p-6 border border-green-300/50">
+                    <div className="flex flex-col">
+                      <TruckIcon className="h-8 w-8 text-white mb-3" />
+                      <p className="text-sm text-white/90 mb-2">Enroute</p>
+                      <p className="text-3xl font-bold text-white">RS. {formatCurrency(dailySummary.enrouteAmount)}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-6 border border-white/20 opacity-50">
+                    <div className="flex flex-col">
+                      <TruckIcon className="h-8 w-8 text-white/50 mb-3" />
+                      <p className="text-sm text-white/50 mb-2">Enroute</p>
                       <p className="text-3xl font-bold text-white/50">RS. 0</p>
                     </div>
                   </div>
