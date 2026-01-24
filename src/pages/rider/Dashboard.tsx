@@ -175,7 +175,7 @@ const RiderDashboard = () => {
       {/* Mobile Layout */}
       <div className="md:hidden">
         {/* Top Section - Blue Gradient Header */}
-        <div className="bg-gradient-to-br from-cyan-900 via-cyan-500 to-cyan-900 p-6 space-y-6 h-[305px]">
+        <div className="bg-gradient-to-br from-cyan-900 via-cyan-500 to-cyan-900 p-6 pb-8 space-y-6">
           {/* Welcome Section */}
           <div className="flex items-center gap-4">
             {/* Profile Circle */}
@@ -231,7 +231,7 @@ const RiderDashboard = () => {
           </div>
 
           {/* Actions - Mobile (Order history + optional create enroute) */}
-          <div className="mt-6 flex items-center justify-between">
+          <div className="mt-6 mb-2 flex items-center justify-between">
             <Link to="/rider/history">
               <p className="text-white underline text-sm font-medium">
                 Order history
@@ -429,11 +429,6 @@ const RiderDashboard = () => {
               >
                 <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
               </Button>
-              <Link to="/rider/history">
-                <Button className="bg-transparent backdrop-blur-sm text-white border-white rounded-full px-4 py-2 hover:bg-white/20" variant="outline" size="lg">
-                  View Order History
-                </Button>
-              </Link>
             </div>
           </div>
 
@@ -478,6 +473,23 @@ const RiderDashboard = () => {
                 <p className="text-sm text-white/80 mt-1">Earnings</p>
               </div>
             </div> */}
+          </div>
+
+          {/* Actions - Desktop (Order history + optional create enroute) */}
+          <div className="mt-6 mb-2 flex items-center justify-between">
+            <Link to="/rider/history">
+              <Button className="bg-transparent backdrop-blur-sm text-white border-white rounded-full px-4 py-2 hover:bg-white/20" variant="outline" size="sm">
+                View Order History
+              </Button>
+            </Link>
+            {canCreateOrders && (
+              <Link to="/rider/enroute">
+                <Button size="sm" variant="outline" className="bg-white/10 border-white text-white hover:bg-white/20">
+                  <PlusCircle className="h-4 w-4 mr-1" />
+                  New enroute order
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -547,16 +559,6 @@ const RiderDashboard = () => {
                   </div>
                 </div>
               </div>
-              {canCreateOrders && (
-                <div className="flex justify-end">
-                  <Link to="/rider/enroute">
-                    <Button size="sm" className="gap-2">
-                      <PlusCircle className="h-4 w-4" />
-                      New enroute order
-                    </Button>
-                  </Link>
-                </div>
-              )}
             </div>
 
             {/* Delivery List */}
