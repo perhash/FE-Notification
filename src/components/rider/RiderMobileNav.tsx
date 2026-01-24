@@ -22,11 +22,11 @@ export function RiderMobileNav() {
   };
 
   const navItemClass = (active: boolean) =>
-    `flex flex-col items-center justify-center gap-1 py-2 px-3 flex-1 min-w-0 ${active ? "text-cyan-600" : "text-gray-500"}`;
+    `flex flex-col items-center justify-center gap-1 py-2.5 px-3 flex-1 min-w-0 ${active ? "text-cyan-600" : "text-gray-500"}`;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white/90 backdrop-blur-lg md:hidden shadow-2xl">
-      <div className="flex items-stretch h-16">
+      <div className="flex items-stretch h-[72px]">
         {/* Dashboard Button */}
         <NavLink
           to="/rider"
@@ -35,17 +35,17 @@ export function RiderMobileNav() {
             `${navItemClass(isActive)}`
           }
         >
-          <Home className="h-6 w-6" />
-          <span className="text-xs font-medium">Dashboard</span>
+          <Home className="h-7 w-7" />
+          <span className="text-[13px] font-medium">Dashboard</span>
         </NavLink>
         
         {/* Notification Icon */}
         <div className="flex-1 flex items-center justify-center min-w-0">
           <NotificationDrawer 
             trigger={
-              <button className={`flex flex-col items-center justify-center gap-1 h-full w-full ${isActive('/rider/notifications') ? 'text-cyan-600' : 'text-gray-500'}`}>
+              <button className={`flex flex-col items-center justify-center gap-1 h-full w-full py-2.5 ${isActive('/rider/notifications') ? 'text-cyan-600' : 'text-gray-500'}`}>
                 <div className="relative inline-block">
-                  <Bell className="h-6 w-6" />
+                  <Bell className="h-7 w-7" />
                   {unreadCount > 0 && (
                     <Badge
                       variant="destructive"
@@ -55,7 +55,7 @@ export function RiderMobileNav() {
                     </Badge>
                   )}
                 </div>
-                <span className="text-xs font-medium">Notifications</span>
+                <span className="text-[13px] font-medium">Notifications</span>
               </button>
             }
           />
@@ -68,8 +68,8 @@ export function RiderMobileNav() {
             `${navItemClass(isActive)}`
           }
         >
-          <User className="h-6 w-6" />
-          <span className="text-xs font-medium">Profile</span>
+          <User className="h-7 w-7" />
+          <span className="text-[13px] font-medium">Profile</span>
         </NavLink>
 
         {/* Logout Button */}
@@ -77,8 +77,8 @@ export function RiderMobileNav() {
           onClick={handleLogout}
           className={`${navItemClass(false)} hover:text-red-600`}
         >
-          <LogOut className="h-6 w-6" />
-          <span className="text-xs font-medium">Logout</span>
+          <LogOut className="h-7 w-7" />
+          <span className="text-[13px] font-medium">Logout</span>
         </button>
       </div>
     </nav>

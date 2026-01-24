@@ -42,7 +42,7 @@ export function AdminMobileNav() {
   ];
 
   const navItemClass = (active: boolean) =>
-    `flex flex-col items-center justify-center gap-1 py-2 px-3 flex-1 min-w-0 touch-manipulation ${active ? "text-cyan-600" : "text-gray-500"}`;
+    `flex flex-col items-center justify-center gap-1 py-2.5 px-3 flex-1 min-w-0 touch-manipulation ${active ? "text-cyan-600" : "text-gray-500"}`;
 
   // Handle navigation with scroll reset and prevent reload if already active
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, url: string, isActive: boolean) => {
@@ -60,7 +60,7 @@ export function AdminMobileNav() {
   return (
     <>
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white/90 backdrop-blur-lg md:hidden shadow-2xl" style={{ touchAction: 'manipulation' }}>
-        <div className="flex items-stretch h-16">
+        <div className="flex items-stretch h-[72px]">
           {/* Dashboard Button */}
           <NavLink
             to="/admin"
@@ -76,8 +76,8 @@ export function AdminMobileNav() {
               e.stopPropagation();
             }}
           >
-            <Home className="h-6 w-6" />
-            <span className="text-xs font-medium">Dashboard</span>
+            <Home className="h-7 w-7" />
+            <span className="text-[13px] font-medium">Dashboard</span>
           </NavLink>
           
           {/* Orders Button */}
@@ -94,26 +94,26 @@ export function AdminMobileNav() {
               e.stopPropagation();
             }}
           >
-            <Package className="h-6 w-6" />
-            <span className="text-xs font-medium">Orders</span>
+            <Package className="h-7 w-7" />
+            <span className="text-[13px] font-medium">Orders</span>
           </NavLink>
 
           {/* Six-dot Menu */}
           <Drawer open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <DrawerTrigger asChild>
               <button 
-                className={`flex flex-col items-center justify-center gap-1 py-2 px-3 flex-1 min-w-0 text-gray-500 hover:text-cyan-600 transition-colors touch-manipulation`}
+                className={`flex flex-col items-center justify-center gap-1 py-2.5 px-3 flex-1 min-w-0 text-gray-500 hover:text-cyan-600 transition-colors touch-manipulation`}
                 style={{ touchAction: 'manipulation' }}
               >
                 <div className="relative">
-                  <Grid3x3 className="h-6 w-6" />
+                  <Grid3x3 className="h-7 w-7" />
                   {isMenuOpen ? (
                     <ChevronDown className="h-3 w-3 absolute -bottom-1 right-0" />
                   ) : (
                     <ChevronUp className="h-3 w-3 absolute -bottom-1 right-0" />
                   )}
                 </div>
-                <span className="text-xs font-medium">Menu</span>
+                <span className="text-[13px] font-medium">Menu</span>
               </button>
             </DrawerTrigger>
             <DrawerContent className="max-h-[80vh] h-auto">
@@ -199,11 +199,11 @@ export function AdminMobileNav() {
             <NotificationDrawer 
               trigger={
                 <button 
-                  className="flex flex-col items-center justify-center gap-1 h-full w-full text-gray-500 hover:text-cyan-600 touch-manipulation"
+                  className="flex flex-col items-center justify-center gap-1 h-full w-full text-gray-500 hover:text-cyan-600 touch-manipulation py-2.5"
                   style={{ touchAction: 'manipulation' }}
                 >
                   <div className="relative inline-block">
-                    <Bell className="h-6 w-6" />
+                    <Bell className="h-7 w-7" />
                     {unreadCount > 0 && (
                       <Badge
                         variant="destructive"
@@ -213,7 +213,7 @@ export function AdminMobileNav() {
                       </Badge>
                     )}
                   </div>
-                  <span className="text-xs font-medium">Notifications</span>
+                  <span className="text-[13px] font-medium">Notifications</span>
                 </button>
               }
             />
@@ -222,11 +222,11 @@ export function AdminMobileNav() {
           {/* Logout Button */}
           <button
             onClick={handleLogout}
-            className={`flex flex-col items-center justify-center gap-1 py-2 px-3 flex-1 min-w-0 text-gray-500 hover:text-red-600 transition-colors touch-manipulation`}
+            className={`flex flex-col items-center justify-center gap-1 py-2.5 px-3 flex-1 min-w-0 text-gray-500 hover:text-red-600 transition-colors touch-manipulation`}
             style={{ touchAction: 'manipulation' }}
           >
-            <LogOut className="h-6 w-6" />
-            <span className="text-xs font-medium">Logout</span>
+            <LogOut className="h-7 w-7" />
+            <span className="text-[13px] font-medium">Logout</span>
           </button>
         </div>
       </nav>
