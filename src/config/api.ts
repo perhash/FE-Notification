@@ -85,7 +85,11 @@ export const API_ENDPOINTS = {
   
   // Bottle Categories
   BOTTLE_CATEGORIES: '/bottle-categories',
-  BOTTLE_CATEGORY_BY_ID: (id: string) => `/bottle-categories/${id}`
+  BOTTLE_CATEGORY_BY_ID: (id: string) => `/bottle-categories/${id}`,
+
+  // Daily Closings
+  DAILY_CLOSINGS: '/daily-closings',
+  DAILY_CLOSINGS_SUMMARY: '/daily-closings/summary',
 };
 
 // Log current configuration (for debugging)

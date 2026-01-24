@@ -322,17 +322,22 @@ class ApiService {
 
   // Daily Closings API
   async getDailyClosingSummary() {
-    return this.request('/daily-closings/summary');
+    return this.request<import('../types/dailyClosing').DailyClosingSummaryResponse>(
+      API_ENDPOINTS.DAILY_CLOSINGS_SUMMARY
+    );
   }
 
   async getAllDailyClosings() {
-    return this.request('/daily-closings');
+    return this.request<import('../types/dailyClosing').DailyClosingListResponse>(
+      API_ENDPOINTS.DAILY_CLOSINGS
+    );
   }
 
   async saveDailyClosing() {
-    return this.request('/daily-closings', {
-      method: 'POST',
-    });
+    return this.request<import('../types/dailyClosing').DailyClosingSaveResponse>(
+      API_ENDPOINTS.DAILY_CLOSINGS,
+      { method: 'POST' }
+    );
   }
 
   // Admin Profile API

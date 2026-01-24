@@ -6,13 +6,24 @@ import { apiService } from "@/services/api";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import type { DailyClosing } from "@/types/dailyClosing";
 
-// Component for collapsible rider card in Daily Closings
-const RiderCollectionCard = ({ rider, index }: { rider: any; index: number }) => {
+const n = (v: number | undefined | null) => Number(v) || 0;
+function arr<T>(v: T[] | undefined | null): T[] {
+  return Array.isArray(v) ? v : [];
+}
+
+/** Collapsible rider card in Daily Closings list */
+function RiderCollectionCard({
+  rider,
+  index,
+  formatCurrency,
+}: {
+  rider: DailyClosing["riderCollections"][number];
+  index: number;
+  formatCurrency: (amount: number) => string;
+}) {
   const [riderOpen, setRiderOpen] = useState(false);
-  const formatCurrency = (amount: number) => {
-    return `RS. ${amount.toFixed(2)}`;
-  };
 
   return (
     <Collapsible open={riderOpen} onOpenChange={setRiderOpen}>
@@ -21,10 +32,10 @@ const RiderCollectionCard = ({ rider, index }: { rider: any; index: number }) =>
           <span className="text-xs text-gray-700 font-medium">{rider.riderName}</span>
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-purple-900">
-              {formatCurrency(rider.amount)}
+              {formatCurrency(n(rider.amount))}
             </span>
             <span className="text-xs text-gray-500">
-              ({rider.ordersCount} orders)
+              ({n(rider.ordersCount)} orders)
             </span>
             {riderOpen ? (
               <ChevronUp className="h-3 w-3 text-purple-700" />
@@ -35,19 +46,19 @@ const RiderCollectionCard = ({ rider, index }: { rider: any; index: number }) =>
         </div>
       </CollapsibleTrigger>
       <CollapsibleContent>
-        {rider.paymentMethods && rider.paymentMethods.length > 0 ? (
+        {arr(rider.paymentMethods).length > 0 ? (
           <div className="ml-4 mt-1 space-y-1 bg-purple-100 rounded p-2 border border-purple-200">
-            {rider.paymentMethods.map((pm: any, pmIdx: number) => (
-              <div key={pmIdx} className="flex justify-between items-center text-xs">
+            {arr(rider.paymentMethods).map((pm, pmIdx) => (
+              <div key={pm.method ?? pmIdx} className="flex justify-between items-center text-xs">
                 <span className="text-gray-700">
-                  {pm.method.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                  {String(pm.method ?? "").replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
                 </span>
                 <div className="flex items-center gap-2">
                   <span className="text-purple-900 font-semibold">
-                    {formatCurrency(pm.amount)}
+                    {formatCurrency(n(pm.amount))}
                   </span>
                   <span className="text-gray-500">
-                    ({pm.ordersCount} orders)
+                    ({n(pm.ordersCount)} orders)
                   </span>
                 </div>
               </div>
@@ -57,13 +68,12 @@ const RiderCollectionCard = ({ rider, index }: { rider: any; index: number }) =>
       </CollapsibleContent>
     </Collapsible>
   );
-};
+}
 
 const DailyClosings = () => {
   const { user } = useAuth();
-  const adminName = (user as any)?.profile?.name || "Admin";
 
-  const [closings, setClosings] = useState<any[]>([]);
+  const [closings, setClosings] = useState<DailyClosing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,17 +85,17 @@ const DailyClosings = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiService.getAllDailyClosings() as any;
-      if (response.success) {
-        setClosings(response.data ?? []);
+      const response = await apiService.getAllDailyClosings();
+      if (response.success && response.data) {
+        setClosings(response.data);
       } else {
-        const msg = response.message || "Failed to fetch daily closings";
+        const msg = response.message ?? "Failed to fetch daily closings";
         setError(msg);
         toast.error(msg);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to fetch daily closings";
       console.error("Error fetching daily closings:", err);
-      const msg = err?.message || "Failed to fetch daily closings";
       setError(msg);
       toast.error(msg);
     } finally {
@@ -94,15 +104,15 @@ const DailyClosings = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    return `RS. ${amount.toFixed(2)}`;
+    return `RS. ${(Number(amount) || 0).toFixed(2)}`;
   };
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -164,7 +174,7 @@ const DailyClosings = () => {
                         <p className="text-xs font-semibold text-blue-900">Receivable</p>
                       </div>
                       <p className="text-lg font-bold text-blue-600">
-                        {formatCurrency(closing.customerReceivable)}
+                        {formatCurrency(n(closing.customerReceivable))}
                       </p>
                     </div>
                     <div className="bg-red-50 rounded-lg p-3 border border-red-200">
@@ -173,7 +183,7 @@ const DailyClosings = () => {
                         <p className="text-xs font-semibold text-red-900">Payable</p>
                       </div>
                       <p className="text-lg font-bold text-red-600">
-                        {formatCurrency(closing.customerPayable)}
+                        {formatCurrency(n(closing.customerPayable))}
                       </p>
                     </div>
                   </div>
@@ -187,41 +197,41 @@ const DailyClosings = () => {
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <p className="text-xs text-gray-600 mb-1">Orders</p>
-                        <p className="text-xl font-bold text-gray-900">{closing.totalOrders}</p>
+                        <p className="text-xl font-bold text-gray-900">{n(closing.totalOrders)}</p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-600 mb-1">Bottles</p>
-                        <p className="text-xl font-bold text-gray-900">{closing.totalBottles}</p>
+                        <p className="text-xl font-bold text-gray-900">{n(closing.totalBottles)}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Financial Summary */}
-                  <div className={`rounded-lg p-3 border mb-4 ${closing.balanceClearedToday >= 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+                  <div className={`rounded-lg p-3 border mb-4 ${n(closing.balanceClearedToday) >= 0 ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}`}>
                     <div className="flex items-center gap-2 mb-2">
-                      <DollarSign className={`h-4 w-4 ${closing.balanceClearedToday >= 0 ? 'text-red-700' : 'text-green-700'}`} />
-                      <p className={`text-xs font-semibold ${closing.balanceClearedToday >= 0 ? 'text-red-900' : 'text-green-900'}`}>Financials</p>
+                      <DollarSign className={`h-4 w-4 ${n(closing.balanceClearedToday) >= 0 ? "text-red-700" : "text-green-700"}`} />
+                      <p className={`text-xs font-semibold ${n(closing.balanceClearedToday) >= 0 ? "text-red-900" : "text-green-900"}`}>Financials</p>
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
                         <span className="text-xs text-gray-700">Order Amount</span>
                         <span className="text-sm font-semibold text-gray-900">
-                          {formatCurrency(closing.totalCurrentOrderAmount)}
+                          {formatCurrency(n(closing.totalCurrentOrderAmount))}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-xs text-gray-700">Paid</span>
                         <span className="text-sm font-semibold text-green-600">
-                          {formatCurrency(closing.totalPaidAmount)}
+                          {formatCurrency(n(closing.totalPaidAmount))}
                         </span>
                       </div>
-                      <div className={`border-t pt-2 ${closing.balanceClearedToday >= 0 ? 'border-red-300' : 'border-green-300'}`}>
+                      <div className={`border-t pt-2 ${n(closing.balanceClearedToday) >= 0 ? "border-red-300" : "border-green-300"}`}>
                         <div className="flex justify-between items-center">
-                          <span className={`text-xs font-semibold ${closing.balanceClearedToday >= 0 ? 'text-red-900' : 'text-green-900'}`}>
-                            {closing.balanceClearedToday >= 0 ? 'Udhaar' : 'Recovery'}
+                          <span className={`text-xs font-semibold ${n(closing.balanceClearedToday) >= 0 ? "text-red-900" : "text-green-900"}`}>
+                            {n(closing.balanceClearedToday) >= 0 ? "Udhaar" : "Recovery"}
                           </span>
-                          <span className={`text-lg font-bold ${closing.balanceClearedToday >= 0 ? 'text-red-700' : 'text-green-700'}`}>
-                            {formatCurrency(Math.abs(closing.balanceClearedToday))}
+                          <span className={`text-lg font-bold ${n(closing.balanceClearedToday) >= 0 ? "text-red-700" : "text-green-700"}`}>
+                            {formatCurrency(Math.abs(n(closing.balanceClearedToday)))}
                           </span>
                         </div>
                       </div>
@@ -229,22 +239,22 @@ const DailyClosings = () => {
                   </div>
 
                   {/* Rider Collections */}
-                  {closing.riderCollections && closing.riderCollections.length > 0 && (
+                  {arr(closing.riderCollections).length > 0 && (
                     <div className="bg-purple-50 rounded-lg p-3 border border-purple-200 mb-4">
                       <div className="flex items-center gap-2 mb-2">
                         <TruckIcon className="h-4 w-4 text-purple-700" />
                         <p className="text-xs font-semibold text-purple-900">Rider Collections</p>
                       </div>
                       <div className="space-y-2">
-                        {closing.riderCollections.map((rc: any, idx: number) => (
-                          <RiderCollectionCard key={idx} rider={rc} index={idx} />
+                        {arr(closing.riderCollections).map((rc, idx) => (
+                          <RiderCollectionCard key={rc.riderName + idx} rider={rc} index={idx} formatCurrency={formatCurrency} />
                         ))}
                       </div>
                     </div>
                   )}
 
                   {/* Walk-in Amount */}
-                  {closing.walkInAmount > 0 && (
+                  {n(closing.walkInAmount) > 0 && (
                     <div className="bg-cyan-50 rounded-lg p-3 border border-cyan-200 mb-4">
                       <div className="flex items-center gap-2 mb-2">
                         <Users className="h-4 w-4 text-cyan-700" />
@@ -253,38 +263,38 @@ const DailyClosings = () => {
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-semibold text-cyan-900">Total Walk-in</span>
                         <span className="text-xl font-bold text-cyan-700">
-                          {formatCurrency(closing.walkInAmount)}
+                          {formatCurrency(n(closing.walkInAmount))}
                         </span>
                       </div>
                     </div>
                   )}
 
                   {/* Clear Bill Amount */}
-                  {closing.clearBillAmount !== 0 && (
+                  {n(closing.clearBillAmount) !== 0 && (
                     <div className={`rounded-lg p-3 border mb-4 ${
-                      closing.clearBillAmount >= 0 
-                        ? 'bg-indigo-50 border-indigo-200' 
-                        : 'bg-red-50 border-red-200'
+                      n(closing.clearBillAmount) >= 0
+                        ? "bg-indigo-50 border-indigo-200"
+                        : "bg-red-50 border-red-200"
                     }`}>
                       <div className="flex items-center gap-2 mb-2">
-                        <Receipt className={`h-4 w-4 ${closing.clearBillAmount >= 0 ? 'text-indigo-700' : 'text-red-700'}`} />
-                        <p className={`text-xs font-semibold ${closing.clearBillAmount >= 0 ? 'text-indigo-900' : 'text-red-900'}`}>
-                          {closing.clearBillAmount >= 0 ? 'Clear Bill Sales' : 'Clear Bill (Payable)'}
+                        <Receipt className={`h-4 w-4 ${n(closing.clearBillAmount) >= 0 ? "text-indigo-700" : "text-red-700"}`} />
+                        <p className={`text-xs font-semibold ${n(closing.clearBillAmount) >= 0 ? "text-indigo-900" : "text-red-900"}`}>
+                          {n(closing.clearBillAmount) >= 0 ? "Clear Bill Sales" : "Clear Bill (Payable)"}
                         </p>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className={`text-sm font-semibold ${closing.clearBillAmount >= 0 ? 'text-indigo-900' : 'text-red-900'}`}>
+                        <span className={`text-sm font-semibold ${n(closing.clearBillAmount) >= 0 ? "text-indigo-900" : "text-red-900"}`}>
                           Total Clear Bill
                         </span>
-                        <span className={`text-xl font-bold ${closing.clearBillAmount >= 0 ? 'text-indigo-700' : 'text-red-700'}`}>
-                          {formatCurrency(Math.abs(closing.clearBillAmount))}
+                        <span className={`text-xl font-bold ${n(closing.clearBillAmount) >= 0 ? "text-indigo-700" : "text-red-700"}`}>
+                          {formatCurrency(Math.abs(n(closing.clearBillAmount)))}
                         </span>
                       </div>
                     </div>
                   )}
 
                   {/* Enroute Order Amount */}
-                  {closing.enrouteAmount > 0 && (
+                  {n(closing.enrouteAmount) > 0 && (
                     <div className="bg-green-50 rounded-lg p-3 border border-green-200 mb-4">
                       <div className="flex items-center gap-2 mb-2">
                         <TruckIcon className="h-4 w-4 text-green-700" />
@@ -293,31 +303,31 @@ const DailyClosings = () => {
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-semibold text-green-900">Total Enroute</span>
                         <span className="text-xl font-bold text-green-700">
-                          {formatCurrency(closing.enrouteAmount)}
+                          {formatCurrency(n(closing.enrouteAmount))}
                         </span>
                       </div>
                     </div>
                   )}
 
                   {/* Payment Methods */}
-                  {closing.paymentMethods && closing.paymentMethods.length > 0 && (
+                  {arr(closing.paymentMethods).length > 0 && (
                     <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 mb-4">
                       <div className="flex items-center gap-2 mb-2">
                         <Wallet className="h-4 w-4 text-orange-700" />
                         <p className="text-xs font-semibold text-orange-900">Payment Methods</p>
                       </div>
                       <div className="space-y-2">
-                        {closing.paymentMethods.map((pm: any, idx: number) => (
-                          <div key={idx} className="flex justify-between items-center">
+                        {arr(closing.paymentMethods).map((pm, idx) => (
+                          <div key={pm.method ?? idx} className="flex justify-between items-center">
                             <span className="text-xs text-gray-700">
-                              {pm.method.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                              {String(pm.method ?? "").replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
                             </span>
                             <div className="text-right">
                               <span className="text-sm font-semibold text-orange-900">
-                                {formatCurrency(pm.amount)}
+                                {formatCurrency(n(pm.amount))}
                               </span>
                               <span className="text-xs text-gray-500 ml-2">
-                                ({pm.ordersCount} orders)
+                                ({n(pm.ordersCount)} orders)
                               </span>
                             </div>
                           </div>
@@ -328,12 +338,12 @@ const DailyClosings = () => {
 
                   {/* Timestamp */}
                   <div className="text-xs text-gray-500 pt-3 border-t">
-                    Created: {new Date(closing.createdAt).toLocaleString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
+                    Created: {new Date(closing.createdAt).toLocaleString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
                     })}
                   </div>
                 </CardContent>

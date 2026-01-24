@@ -18,10 +18,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Loader2, DollarSign, Users, Package, AlertCircle, Calendar, TruckIcon, Wallet, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { apiService } from "@/services/api";
+import type { DailyClosingSummary } from "@/types/dailyClosing";
 
 interface CloseCounterDialogProps {
   trigger?: React.ReactNode;
@@ -35,7 +35,7 @@ export function CloseCounterDialog({ trigger, open: controlledOpen, onOpenChange
   const setOpen = onOpenChange || setInternalOpen;
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [summary, setSummary] = useState<any>(null);
+  const [summary, setSummary] = useState<DailyClosingSummary | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   useEffect(() => {
@@ -47,16 +47,17 @@ export function CloseCounterDialog({ trigger, open: controlledOpen, onOpenChange
   const fetchSummary = async () => {
     try {
       setLoading(true);
-      const response = await apiService.getDailyClosingSummary() as any;
-      if (response.success) {
+      const response = await apiService.getDailyClosingSummary();
+      if (response.success && response.data) {
         setSummary(response.data);
       } else {
-        toast.error(response.message || "Failed to fetch summary");
+        toast.error(response.message ?? "Failed to fetch summary");
         setOpen(false);
       }
-    } catch (error: any) {
-      console.error('Error fetching summary:', error);
-      toast.error(error.message || "Failed to fetch summary");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to fetch summary";
+      console.error("Error fetching summary:", err);
+      toast.error(msg);
       setOpen(false);
     } finally {
       setLoading(false);
@@ -66,17 +67,18 @@ export function CloseCounterDialog({ trigger, open: controlledOpen, onOpenChange
   const handleCloseCounter = async () => {
     try {
       setSaving(true);
-      const response = await apiService.saveDailyClosing() as any;
+      const response = await apiService.saveDailyClosing();
       if (response.success) {
-        toast.success(response.message || "Daily closing saved successfully");
+        toast.success(response.message ?? "Daily closing saved successfully");
         setOpen(false);
         setSummary(null);
       } else {
-        toast.error(response.message || "Failed to save daily closing");
+        toast.error(response.message ?? "Failed to save daily closing");
       }
-    } catch (error: any) {
-      console.error('Error saving daily closing:', error);
-      toast.error(error.message || "Failed to save daily closing");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to save daily closing";
+      console.error("Error saving daily closing:", err);
+      toast.error(msg);
     } finally {
       setSaving(false);
       setShowConfirmDialog(false);
@@ -84,17 +86,22 @@ export function CloseCounterDialog({ trigger, open: controlledOpen, onOpenChange
   };
 
   const formatCurrency = (amount: number) => {
-    return `RS. ${amount.toFixed(2)}`;
+    return `RS. ${(Number(amount) || 0).toFixed(2)}`;
   };
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
+
+  const n = (v: number | undefined | null) => Number(v) || 0;
+  function arr<T>(v: T[] | undefined | null): T[] {
+    return Array.isArray(v) ? v : [];
+  }
 
   return (
     <>
@@ -128,7 +135,7 @@ export function CloseCounterDialog({ trigger, open: controlledOpen, onOpenChange
                       Cannot Close Counter
                     </p>
                     <p className="text-sm text-red-700">
-                      There are {summary.inProgressOrdersCount} order(s) currently in progress. 
+                      There are {n(summary.inProgressOrdersCount)} order(s) currently in progress. 
                       Please complete all orders before closing the counter.
                     </p>
                   </div>
@@ -166,7 +173,7 @@ export function CloseCounterDialog({ trigger, open: controlledOpen, onOpenChange
                     <p className="text-sm font-semibold text-blue-900">Customer Receivable</p>
                   </div>
                   <p className="text-2xl font-bold text-blue-600">
-                    {formatCurrency(summary.customerReceivable)}
+                    {formatCurrency(n(summary.customerReceivable))}
                   </p>
                 </div>
                 <div className="bg-red-50 rounded-lg p-4 border border-red-200">
@@ -175,7 +182,7 @@ export function CloseCounterDialog({ trigger, open: controlledOpen, onOpenChange
                     <p className="text-sm font-semibold text-red-900">Customer Payable</p>
                   </div>
                   <p className="text-2xl font-bold text-red-600">
-                    {formatCurrency(summary.customerPayable)}
+                    {formatCurrency(n(summary.customerPayable))}
                   </p>
                 </div>
               </div>
@@ -189,41 +196,41 @@ export function CloseCounterDialog({ trigger, open: controlledOpen, onOpenChange
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs text-gray-600 mb-1">Total Orders</p>
-                    <p className="text-2xl font-bold text-gray-900">{summary.totalOrders}</p>
+                    <p className="text-2xl font-bold text-gray-900">{n(summary.totalOrders)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-600 mb-1">Total Bottles</p>
-                    <p className="text-2xl font-bold text-gray-900">{summary.totalBottles}</p>
+                    <p className="text-2xl font-bold text-gray-900">{n(summary.totalBottles)}</p>
                   </div>
                 </div>
               </div>
 
               {/* Financial Summary */}
-              <div className={`rounded-lg p-4 border ${summary.balanceClearedToday >= 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+              <div className={`rounded-lg p-4 border ${n(summary.balanceClearedToday) >= 0 ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}`}>
                 <div className="flex items-center gap-2 mb-3">
-                  <DollarSign className={`h-5 w-5 ${summary.balanceClearedToday >= 0 ? 'text-red-700' : 'text-green-700'}`} />
-                  <p className={`text-sm font-semibold ${summary.balanceClearedToday >= 0 ? 'text-red-900' : 'text-green-900'}`}>Financial Summary</p>
+                  <DollarSign className={`h-5 w-5 ${n(summary.balanceClearedToday) >= 0 ? "text-red-700" : "text-green-700"}`} />
+                  <p className={`text-sm font-semibold ${n(summary.balanceClearedToday) >= 0 ? "text-red-900" : "text-green-900"}`}>Financial Summary</p>
                 </div>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-700">Total Current Order Amount</span>
                     <span className="text-lg font-semibold text-gray-900">
-                      {formatCurrency(summary.totalCurrentOrderAmount)}
+                      {formatCurrency(n(summary.totalCurrentOrderAmount))}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-700">Total Paid Amount</span>
                     <span className="text-lg font-semibold text-green-600">
-                      {formatCurrency(summary.totalPaidAmount)}
+                      {formatCurrency(n(summary.totalPaidAmount))}
                     </span>
                   </div>
-                  <div className={`border-t pt-3 ${summary.balanceClearedToday >= 0 ? 'border-red-300' : 'border-green-300'}`}>
+                  <div className={`border-t pt-3 ${n(summary.balanceClearedToday) >= 0 ? "border-red-300" : "border-green-300"}`}>
                     <div className="flex justify-between items-center">
-                      <span className={`text-base font-semibold ${summary.balanceClearedToday >= 0 ? 'text-red-900' : 'text-green-900'}`}>
-                        {summary.balanceClearedToday >= 0 ? 'Udhaar' : 'Recovery'}
+                      <span className={`text-base font-semibold ${n(summary.balanceClearedToday) >= 0 ? "text-red-900" : "text-green-900"}`}>
+                        {n(summary.balanceClearedToday) >= 0 ? "Udhaar" : "Recovery"}
                       </span>
-                      <span className={`text-2xl font-bold ${summary.balanceClearedToday >= 0 ? 'text-red-700' : 'text-green-700'}`}>
-                        {formatCurrency(Math.abs(summary.balanceClearedToday))}
+                      <span className={`text-2xl font-bold ${n(summary.balanceClearedToday) >= 0 ? "text-red-700" : "text-green-700"}`}>
+                        {formatCurrency(Math.abs(n(summary.balanceClearedToday)))}
                       </span>
                     </div>
                   </div>
@@ -231,22 +238,22 @@ export function CloseCounterDialog({ trigger, open: controlledOpen, onOpenChange
               </div>
 
               {/* Rider Collections */}
-              {summary.riderCollections && summary.riderCollections.length > 0 && (
+              {arr(summary.riderCollections).length > 0 && (
                 <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
                   <div className="flex items-center gap-2 mb-3">
                     <TruckIcon className="h-5 w-5 text-purple-700" />
                     <p className="text-sm font-semibold text-purple-900">Rider Collections</p>
                   </div>
                   <div className="space-y-2">
-                    {summary.riderCollections.map((rc: any, idx: number) => (
-                      <div key={idx} className="flex justify-between items-center">
+                    {arr(summary.riderCollections).map((rc, idx) => (
+                      <div key={rc.riderId ?? idx} className="flex justify-between items-center">
                         <span className="text-sm text-gray-700">{rc.riderName}</span>
                         <div className="text-right">
                           <span className="text-base font-semibold text-purple-900">
-                            {formatCurrency(rc.amount)}
+                            {formatCurrency(n(rc.amount))}
                           </span>
                           <span className="text-xs text-gray-500 ml-2">
-                            ({rc.ordersCount} orders)
+                            ({n(rc.ordersCount)} orders)
                           </span>
                         </div>
                       </div>
@@ -256,7 +263,7 @@ export function CloseCounterDialog({ trigger, open: controlledOpen, onOpenChange
               )}
 
               {/* Walk-in Amount */}
-              {summary.walkInAmount > 0 && (
+              {n(summary.walkInAmount) > 0 && (
                 <div className="bg-cyan-50 rounded-lg p-4 border border-cyan-200">
                   <div className="flex items-center gap-2 mb-2">
                     <Users className="h-5 w-5 text-cyan-700" />
@@ -265,14 +272,14 @@ export function CloseCounterDialog({ trigger, open: controlledOpen, onOpenChange
                   <div className="flex justify-between items-center">
                     <span className="text-base font-semibold text-cyan-900">Total Walk-in</span>
                     <span className="text-2xl font-bold text-cyan-700">
-                      {formatCurrency(summary.walkInAmount)}
+                      {formatCurrency(n(summary.walkInAmount))}
                     </span>
                   </div>
                 </div>
               )}
 
               {/* Clear Bill Amount */}
-              {summary.clearBillAmount > 0 && (
+              {n(summary.clearBillAmount) > 0 && (
                 <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
                   <div className="flex items-center gap-2 mb-2">
                     <Receipt className="h-5 w-5 text-indigo-700" />
@@ -281,31 +288,47 @@ export function CloseCounterDialog({ trigger, open: controlledOpen, onOpenChange
                   <div className="flex justify-between items-center">
                     <span className="text-base font-semibold text-indigo-900">Total Clear Bill</span>
                     <span className="text-2xl font-bold text-indigo-700">
-                      {formatCurrency(summary.clearBillAmount)}
+                      {formatCurrency(n(summary.clearBillAmount))}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Enroute Amount */}
+              {n(summary.enrouteAmount) > 0 && (
+                <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TruckIcon className="h-5 w-5 text-green-700" />
+                    <p className="text-sm font-semibold text-green-900">Enroute Orders</p>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-base font-semibold text-green-900">Total Enroute</span>
+                    <span className="text-2xl font-bold text-green-700">
+                      {formatCurrency(n(summary.enrouteAmount))}
                     </span>
                   </div>
                 </div>
               )}
 
               {/* Payment Methods */}
-              {summary.paymentMethods && summary.paymentMethods.length > 0 && (
+              {arr(summary.paymentMethods).length > 0 && (
                 <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
                   <div className="flex items-center gap-2 mb-3">
                     <Wallet className="h-5 w-5 text-orange-700" />
                     <p className="text-sm font-semibold text-orange-900">Payment Methods</p>
                   </div>
                   <div className="space-y-2">
-                    {summary.paymentMethods.map((pm: any, idx: number) => (
-                      <div key={idx} className="flex justify-between items-center">
+                    {arr(summary.paymentMethods).map((pm, idx) => (
+                      <div key={pm.method ?? idx} className="flex justify-between items-center">
                         <span className="text-sm text-gray-700">
-                          {pm.method.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                          {String(pm.method ?? "").replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
                         </span>
                         <div className="text-right">
                           <span className="text-base font-semibold text-orange-900">
-                            {formatCurrency(pm.amount)}
+                            {formatCurrency(n(pm.amount))}
                           </span>
                           <span className="text-xs text-gray-500 ml-2">
-                            ({pm.ordersCount} orders)
+                            ({n(pm.ordersCount)} orders)
                           </span>
                         </div>
                       </div>
