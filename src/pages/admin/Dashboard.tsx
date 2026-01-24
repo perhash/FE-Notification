@@ -415,7 +415,7 @@ const AdminDashboard = () => {
               </div>
 
               {/* Collections Summary - Collapsible (Walk-in, Clear Bill, Enroute, Rider Collections) */}
-              {(dailySummary.walkInAmount > 0 || dailySummary.clearBillAmount > 0 || (dailySummary.enrouteAmount > 0) || (dailySummary.riderCollections && dailySummary.riderCollections.length > 0)) && (
+              {((dailySummary.walkInAmount || 0) > 0 || (dailySummary.clearBillAmount || 0) > 0 || (dailySummary.enrouteAmount || 0) > 0 || (dailySummary.riderCollections && dailySummary.riderCollections.length > 0)) && (
                 <Collapsible open={collectionsOpen} onOpenChange={setCollectionsOpen}>
                   <CollapsibleTrigger asChild>
                     <div className="bg-gradient-to-r from-purple-500/80 to-indigo-500/80 backdrop-blur-sm rounded-2xl p-2.5 border border-purple-300/50 cursor-pointer active:scale-[0.98] transition-all mb-2.5">
@@ -428,7 +428,7 @@ const AdminDashboard = () => {
                               {[
                                 dailySummary.walkInAmount > 0 ? 'Walk-in' : null,
                                 dailySummary.clearBillAmount > 0 ? 'Clear Bill' : null,
-                                dailySummary.enrouteAmount > 0 ? 'Enroute' : null,
+                                (dailySummary.enrouteAmount || 0) > 0 ? 'Enroute' : null,
                                 dailySummary.riderCollections && dailySummary.riderCollections.length > 0 ? `${dailySummary.riderCollections.length} Rider${dailySummary.riderCollections.length > 1 ? 's' : ''}` : null
                               ].filter(Boolean).join(' • ')}
                             </p>
@@ -471,14 +471,14 @@ const AdminDashboard = () => {
                       )}
 
                       {/* Enroute Order Amount */}
-                      {dailySummary.enrouteAmount > 0 && (
+                      {(dailySummary.enrouteAmount || 0) > 0 && (
                         <div className="bg-green-500/80 backdrop-blur-sm rounded-xl p-2.5 border border-green-300/40">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <TruckIcon className="h-3.5 w-3.5 text-white" />
                               <span className="text-xs font-semibold text-white">Enroute Orders</span>
                             </div>
-                            <span className="text-xs font-bold text-white">RS. {formatCurrency(dailySummary.enrouteAmount)}</span>
+                            <span className="text-xs font-bold text-white">RS. {formatCurrency(dailySummary.enrouteAmount || 0)}</span>
                           </div>
                         </div>
                       )}
@@ -899,12 +899,12 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                 )}
-                {dailySummary.enrouteAmount > 0 ? (
+                {(dailySummary.enrouteAmount || 0) > 0 ? (
                   <div className="bg-green-500/80 backdrop-blur-sm rounded-3xl p-6 border border-green-300/50">
                     <div className="flex flex-col">
                       <TruckIcon className="h-8 w-8 text-white mb-3" />
                       <p className="text-sm text-white/90 mb-2">Enroute</p>
-                      <p className="text-3xl font-bold text-white">RS. {formatCurrency(dailySummary.enrouteAmount)}</p>
+                      <p className="text-3xl font-bold text-white">RS. {formatCurrency(dailySummary.enrouteAmount || 0)}</p>
                     </div>
                   </div>
                 ) : (
