@@ -231,7 +231,7 @@ const RiderDashboard = () => {
           </div>
 
           {/* Actions - Mobile (Order history + optional create enroute) */}
-          <div className="mt-6 mb-2 flex items-center justify-between">
+          <div className="mt-6 mb-4 flex items-center justify-between">
             <Link to="/rider/history">
               <p className="text-white underline text-sm font-medium">
                 Order history
